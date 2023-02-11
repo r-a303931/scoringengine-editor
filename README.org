@@ -6,3 +6,5 @@ Future plans include:
 
 1. The ability to generate Terraform configuration files to make setup of entire networks that match the scoring engine configuration easier
 2. When generating Terraform configuration, make it so that some services can be configured, not just the boxes, such as a Wordpress site being configured to access a specific database, filling out some of the basic configuration
+
+The site is automatically updated when pushed to the master branch of this repository, and can be viewed live [[https://r-a303931.github.io/scoringengine-editor/#][using GitHub pages]]
