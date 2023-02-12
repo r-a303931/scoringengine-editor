@@ -112,10 +112,9 @@ fn UserEditorComponent(props: &UserEditorProps) -> Html {
 
             <div class="form-row">
                 <div class="form-block">
-                    { "Delete user" }
                 </div>
 
-                <div class="form-block">
+                <div class="form-block button-box">
                     <a href="#" onclick={delete_user_onclick}>
                         { "Delete user" }
                     </a>
@@ -175,7 +174,7 @@ fn UserListEditor(props: &UserListEditorProps) -> Html {
     });
 
     html! {
-        <div class="user-editor-list">
+        <div class={classes!("user-editor-list", Some("border").filter(|_| props.users.len() > 0))}>
             { for user_list }
         </div>
     }
@@ -243,7 +242,7 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
             let mut users = (*users).clone();
             users.push(UserProps {
                 username: "".into(),
-                password: "".into(),
+                password: "Chiapet1!".into(),
             });
             update_team.emit((name.clone(), users.into(), white_team));
         })
@@ -257,64 +256,68 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
 
     html! {
         <div class="team-editor red-team-editor">
-            <div class="form-row">
-                <div class="form-block">
-                    { "Team name" }
+            <div class="left-column">
+                <div class="form-row name-editor border">
+                    <div class="form-block">
+                        { "Team name" }
+                    </div>
+
+                    <div class="form-block">
+                        <input
+                            ref={name_ref}
+                            type="text"
+                            value={props.name.clone()}
+                            onchange={set_name}
+                        />
+                    </div>
                 </div>
 
-                <div class="form-block">
-                    <input
-                        ref={name_ref}
-                        type="text"
-                        value={props.name.clone()}
-                        onchange={set_name}
-                    />
+                <div class="form-row type-editor border">
+                    <div class="form-block">
+                        { "White team or red team" }
+                    </div>
+
+                    <div class="form-block">
+                        <select
+                            value={if props.white_team { "white" } else { "red" }}
+                            onchange={change_team_type}
+                            ref={type_ref}
+                        >
+                            <option value="red">{ "Red team" }</option>
+                            <option value="white">{ "White team" }</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row delete-team">
+                    <div class="form-block">
+                    </div>
+
+                    <div class="form-block button-box">
+                        <a href="#" onclick={delete_team}>
+                            { "Delete team" }
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-block">
-                    { "White team or red team" }
+            <div class="right-column">
+                <div class="form-row add-user border">
+                    <div class="form-block">
+                        { "Users" }
+                    </div>
+
+                    <div class="form-block button-box">
+                        <a href="#" onclick={add_user}>
+                            { "Add user" }
+                        </a>
+                    </div>
                 </div>
 
-                <div class="form-block">
-                    <select
-                        value={if props.white_team { "white" } else { "red" }}
-                        onchange={change_team_type}
-                        ref={type_ref}
-                    >
-                        <option value="red">{ "Red team" }</option>
-                        <option value="white">{ "White team" }</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-block">
-                    { "Users" }
-                </div>
-
-                <div class="form-block">
-                    <a href="#" onclick={add_user}>
-                        { "Add user" }
-                    </a>
-                </div>
-            </div>
-
-            <UserListEditor
-                users={props.users.clone()}
-                {update_users}
-            />
-
-            <div class="form-row">
-                <div class="form-block">
-                </div>
-
-                <div class="form-block">
-                    <a href="#" onclick={delete_team}>
-                        { "Delete team" }
-                    </a>
-                </div>
+                <UserListEditor
+                    users={props.users.clone()}
+                    {update_users}
+                />
             </div>
         </div>
     }
@@ -390,7 +393,7 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
             let mut users = (*users).clone();
             users.push(UserProps {
                 username: "".into(),
-                password: "".into(),
+                password: "Chiapet1!".into(),
             });
             update_team.emit((name.clone(), users.into(), id));
         })
@@ -403,63 +406,74 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
     };
 
     html! {
-        <div class="team-editor red-team-editor">
-            <div class="form-row">
-                <div class="form-block">
-                    { "Team name" }
+        <div class="team-editor blue-team-editor">
+            <div class="left-column">
+                <div class="form-row name-editor border">
+                    <div class="form-block">
+                        { "Team name" }
+                    </div>
+
+                    <div class="form-block">
+                        <input
+                            ref={name_ref}
+                            type="text"
+                            value={props.name.clone()}
+                            onchange={set_name}
+                        />
+                    </div>
                 </div>
 
-                <div class="form-block">
-                    <input
-                        ref={name_ref}
-                        type="text"
-                        value={props.name.clone()}
-                        onchange={set_name}
-                    />
+                <div class="form-row id-editor border">
+
+                    <div class="form-block">
+                        { "Team ID" }
+                    </div>
+
+                    <div class="form-block">
+                        if let Some(err) = &id_input_state.1 {
+                            <div id="error">
+                                {err}
+                            </div>
+                        }
+
+                        <input
+                            ref={id_ref}
+                            type="text"
+                            value={id_input_state.0.clone()}
+                            onchange={set_id}
+                        />
+                    </div>
+                </div>
+
+                <div class="form-row delete-team">
+                    <div class="form-block">
+                    </div>
+
+                    <div class="form-block button-box">
+                        <a href="#" onclick={delete_team}>
+                            { "Delete team" }
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-block">
-                    { "Team ID" }
+            <div class="right-column">
+                <div class="form-row add-user border">
+                    <div class="form-block">
+                        { "Users" }
+                    </div>
+
+                    <div class="form-block button-box">
+                        <a href="#" onclick={add_user}>
+                            { "Add user" }
+                        </a>
+                    </div>
                 </div>
 
-                <div class="form-block">
-                    <input
-                        ref={id_ref}
-                        type="text"
-                        value={id_input_state.0.clone()}
-                        onchange={set_id}
-                    />
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-block">
-                    { "Users" }
-                </div>
-
-                <div class="form-block">
-                    <a href="#" onclick={add_user}>
-                        { "Add user" }
-                    </a>
-                </div>
-            </div>
-
-            <UserListEditor
-                users={props.users.clone()}
-                {update_users}
-            />
-
-            <div class="form-row">
-                <div class="form-block">
-                </div>
-
-                <div class="form-block">
-                    <a href="#" onclick={delete_team}>
-                        { "Delete team" }
-                    </a>
-                </div>
+                <UserListEditor
+                    users={props.users.clone()}
+                    {update_users}
+                />
             </div>
         </div>
     }
@@ -490,6 +504,7 @@ pub fn TeamsEditor() -> Html {
         let editor_state = editor_state.clone();
 
         Callback::from(move |_| {
+            log::info!("{new_team_id}");
             editor_state.dispatch(state::EditorMessage::AddBlueTeam(BlueTeamEditor {
                 id: new_team_id + 1,
                 name: "".into(),
@@ -543,8 +558,9 @@ pub fn TeamsEditor() -> Html {
         let name: AttrValue = team.name.clone().into();
 
         html! {
-            <li>
+            <li key={i}>
                 <RedWhiteTeamEditorComponent
+                    key={i}
                     {name}
                     {users}
                     white_team={team.white_team}
@@ -600,8 +616,9 @@ pub fn TeamsEditor() -> Html {
         let name: AttrValue = team.name.clone().into();
 
         html! {
-            <li>
+            <li key={team.id}>
                 <BlueTeamEditorComponent
+                    key={team.id}
                     {name}
                     {users}
                     id={team.id}
@@ -612,26 +629,14 @@ pub fn TeamsEditor() -> Html {
         }
     });
 
-    let debug_click = {
-        let blue_teams = blue_teams.clone();
-        let red_white_teams = red_white_teams.clone();
-
-        Callback::from(move |_| {
-            log::info!("Red teams: {red_white_teams:?}");
-            log::info!("Blue teams: {blue_teams:?}");
-        })
-    };
-
     html! {
         <main id="teams">
             <div class="red-white-team-list">
-                <h3>{ "Red and white teams" }</h3>
-
                 <div>
-                    <h4>{ "Add new red or white team" }</h4>
+                    <h2>{ "Red and white teams" }</h2>
 
                     <div class="form-submit">
-                        <div class="form-submit-button">
+                        <div class="form-submit-button button-box">
                             <a href="#" onclick={add_new_red_white_team}>
                                 { "Add new team" }
                             </a>
@@ -645,13 +650,11 @@ pub fn TeamsEditor() -> Html {
             </div>
 
             <div class="blue-team-list">
-                <h3>{ "Blue teams" }</h3>
-
                 <div>
-                    <h4>{ "Add new blue team" }</h4>
+                    <h2>{ "Blue teams" }</h2>
 
                     <div class="form-submit">
-                        <div class="form-submit-button">
+                        <div class="form-submit-button button-box">
                             <a href="#" onclick={add_new_blue_team}>
                                 { "Add new team" }
                             </a>
@@ -663,10 +666,6 @@ pub fn TeamsEditor() -> Html {
                     { for blue_team_editors }
                 </ul>
             </div>
-
-            <a href="#" onclick={debug_click}>
-                { "Test" }
-            </a>
         </main>
     }
 }

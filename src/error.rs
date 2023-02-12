@@ -22,12 +22,14 @@ use crate::config::ConversionError;
 #[derive(Debug)]
 pub enum EditorError {
     Conversion(ConversionError),
+    Serialize(serde_yaml::Error),
 }
 
 impl Display for EditorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Conversion(err) => write!(f, "error converting configuration: {}", err),
+            Self::Serialize(err) => write!(f, "error serializing configuration: {}", err),
         }
     }
 }
@@ -39,5 +41,11 @@ pub type EditorResult<A> = Result<A, EditorError>;
 impl From<ConversionError> for EditorError {
     fn from(err: ConversionError) -> Self {
         Self::Conversion(err)
+    }
+}
+
+impl From<serde_yaml::Error> for EditorError {
+    fn from(err: serde_yaml::Error) -> Self {
+        Self::Serialize(err)
     }
 }

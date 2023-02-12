@@ -290,10 +290,11 @@ impl ServiceDefinition {
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
+#[serde(tag = "scheme")]
 pub enum IpGeneratorScheme {
     OneTeam,
     ReplaceXWithId,
-    ReplaceXWithIdTimesMultiplierPlusOffset(u8),
+    ReplaceXWithIdTimesMultiplierPlusOffset { multiplier: u8 },
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -374,11 +375,11 @@ fn convert_id_to_ip(
                 }
             }
         }
-        ReplaceXWithIdTimesMultiplierPlusOffset(mult) => {
+        ReplaceXWithIdTimesMultiplierPlusOffset { multiplier } => {
             let Some(ip_offset) = ip_offset else {
                 return Err(ConversionError::OffsetNotSpecified(machine_name.to_owned()));
             };
-            let ip = mult * id + ip_offset;
+            let ip = multiplier * id + ip_offset;
             if ip_template.chars().any(|c| c == 'x' || c == 'X') {
                 Ok(ip_template
                     .replace("X", &ip.to_string())
@@ -435,7 +436,9 @@ pub fn convert_editor_to_final(
         }
     }
 
-    if let IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset(mult) = config.ip_generator {
+    if let IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset { multiplier: mult } =
+        config.ip_generator
+    {
         let mcount = <usize as TryInto<u8>>::try_into(config.machines.len()).unwrap();
         if mult < mcount {
             return Err(ConversionError::MultNotBigEnough(mcount, mult));

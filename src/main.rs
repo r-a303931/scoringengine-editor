@@ -127,6 +127,9 @@ fn MainContent() -> Html {
             Teams => html! {
                 <users::TeamsEditor />
             },
+            Output => html! {
+                <output::ConfigurationOutput />
+            },
             _ => {
                 html! {}
             }

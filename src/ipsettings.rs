@@ -88,7 +88,7 @@ pub fn IpSettingsEditor() -> Html {
                         )))
                     },
                     Ok(mult) => editor_state.dispatch(state::EditorMessage::UpdateIpSettings(
-                        IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset(mult),
+                        IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset { multiplier: mult },
                     )),
                     Err(e) => editor_state.dispatch(state::EditorMessage::Error(format!(
                         "Unable to parse input: {:?}",
@@ -163,7 +163,7 @@ pub fn IpSettingsEditor() -> Html {
 
                     <div>
                         { match editor_state_c.2.ip_generator {
-                            IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset(x) => x.to_string(),
+                            IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset { multiplier } => multiplier.to_string(),
                             _ => "(none)".to_string(),
                         } }
                     </div>

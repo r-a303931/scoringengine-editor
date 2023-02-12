@@ -1,202 +1,322 @@
 @use "sass:color";
 
-$blue: #0A254E;
+$blue: #0a254e;
 $red: #900;
 
 html {
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 body {
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-rows: 4rem auto;
-    grid-template-columns: 200px auto;
-    grid-template-areas:
-        "header header"
-        "sidebar content"
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 4rem auto;
+  grid-template-columns: 200px auto;
+  grid-template-areas:
+    "header header"
+    "sidebar content";
 }
 
 header {
-    grid-area: header;
-    background-color: $blue;
-    box-shadow: 1px 0px 3px 1px black;
-    z-index: 5;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+  grid-area: header;
+  background-color: $blue;
+  box-shadow: 1px 0px 3px 1px black;
+  z-index: 5;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 
-    h2 {
-        font-size: 2rem;
-        padding-left: 25px;
-        padding-top: 1rem;;
-        padding-bottom: 1rem;
-        margin: 0px;
-        color: white;
-        box-sizing: border-box;
-    }
+  h2 {
+    font-size: 2rem;
+    padding-left: 25px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin: 0px;
+    color: white;
+    box-sizing: border-box;
+  }
 }
 
 nav {
-    grid-area: sidebar;
-    background-color: $blue;
+  grid-area: sidebar;
+  background-color: $blue;
 
-    ul {
-        list-style-type: none;
-        padding: 15px;
-        margin: 0;
-        box-sizing: border-box;
-    }
+  ul {
+    list-style-type: none;
+    padding: 15px;
+    margin: 0;
+    box-sizing: border-box;
+  }
 
-    li {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-        margin-bottom: 10px;
-        box-sizing: border-box;
-        background-color: color.scale($blue, $lightness: +5%);
-        border: 1px solid color.scale($blue, $lightness: -15%);
-        border-radius: 5px;
-    }
+  li {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    background-color: color.scale($blue, $lightness: +5%);
+    border: 1px solid color.scale($blue, $lightness: -15%);
+    border-radius: 5px;
+  }
 
-    li.selected {
-        background-color: color.scale($blue, $lightness: +10%);
-    }
+  li.selected {
+    background-color: color.scale($blue, $lightness: +10%);
+  }
+
+  a {
+    color: white;
+    text-decoration: none;
+    width: 100%;
+    display: inline-block;
+    padding: 15px;
+  }
+
+  .selected a {
+    color: white;
+    text-decoration: underline;
+  }
+
+  li.inactive a {
+    color: color.scale(white, $lightness: -30%);
+    cursor: not-allowed;
+  }
+
+  li:not(.inactive):not(.selected):hover {
+    background-color: color.scale($blue, $lightness: +7.5%);
 
     a {
-        color: white;
-        text-decoration: none;
-        width: 100%;
-        display: inline-block;
-        padding: 15px;
+      text-decoration: underline dotted;
     }
-
-    .selected a {
-        color: white;
-        text-decoration: underline;
-    }
-
-    li.inactive a {
-        color: color.scale(white, $lightness: -30%);
-        cursor: not-allowed;
-    }
-
-    li:not(.inactive):not(.selected):hover {
-        background-color: color.scale($blue, $lightness: +7.5%);
-
-        a {
-            text-decoration: underline dotted;
-        }
-    }
+  }
 }
 
 main {
-    padding: 15px;
+  padding: 15px;
 }
 
 #error {
-    background-color: color.scale($red, $lightness: +15%);
-    color: white;
-    border-color: $red;
-    padding: 10px;
-    margin-bottom: 20px;
-    box-sizing: border-box;
-    border-radius: 5px;
+  background-color: color.scale($red, $lightness: +15%);
+  color: white;
+  border-color: $red;
+  padding: 10px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+  border-radius: 5px;
 }
 
 main {
-    overflow: auto;
-    grid-area: content;
+  overflow: auto;
+  grid-area: content;
 }
 
 main#input {
-    textarea {
-        width: 100%;
-        height: calc(100% - 66.4px - 75px - 51.1667px);
-        box-sizing: border-box;
-        border: 1px solid black;
-        border-radius: 5px;
-        resize: none;
-        padding: 5px;
-        box-shadow: 0 0 1px 1px inset #555;
-    }
+  textarea {
+    width: 100%;
+    height: calc(100% - 66.4px - 75px - 51.1667px);
+    box-sizing: border-box;
+    border: 1px solid black;
+    border-radius: 5px;
+    resize: none;
+    padding: 5px;
+    box-shadow: 0 0 1px 1px inset #555;
+  }
 
-    a {
-        text-decoration: none;
-        display: inline-block;
-        background-color: $blue;
-        color: white;
-        padding: 10px;
-        border: 1px solid $blue;
-        float: right;
-        margin: 15px;
-        margin-right: 0px;
-        border-radius: 5px;
-        border: 1px solid color.scale($blue, $lightness: -15%);
+  a {
+    text-decoration: none;
+    display: inline-block;
+    background-color: $blue;
+    color: white;
+    padding: 10px;
+    border: 1px solid $blue;
+    float: right;
+    margin: 15px;
+    margin-right: 0px;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
 
-        &:hover {
-            text-decoration: underline;
-        }
+    &:hover {
+      text-decoration: underline;
     }
+  }
 }
 
 main#ipsettings {
-    .ipoption {
-        box-sizing: border-box;
-        margin-bottom: 15px;
-        border: 1px solid black;
-        padding: 15px;
-    }
+  .ipoption {
+    box-sizing: border-box;
+    margin-bottom: 15px;
+    border: 1px solid black;
+    padding: 15px;
+  }
 
-    .settingheader {
-        display: grid;
-        grid-template-columns: 1fr min-content;
+  .settingheader {
+    display: grid;
+    grid-template-columns: 1fr min-content;
 
-        & h3 {
-            margin-top: 10px;
-        }
+    & h3 {
+      margin-top: 10px;
     }
+  }
 
-    .button-box {
-        justify-self: end;
-    }
+  .button-box {
+    justify-self: end;
+  }
 
-    .selected .button-box a {
-        color: color.scale(white, $lightness: -30%);
-        cursor: not-allowed;
-        content: "Selected";
-    }
+  .selected .button-box a {
+    color: color.scale(white, $lightness: -30%);
+    cursor: not-allowed;
+    content: "Selected";
+  }
 
-    .button-box a {
-        text-decoration: none;
-        display: inline-block;
-        background-color: $blue;
-        color: white;
-        padding: 10px;
-        border: 1px solid $blue;
-        float: right;
-        border-radius: 5px;
-        border: 1px solid color.scale($blue, $lightness: -15%);
-    }
+  .button-box a {
+    text-decoration: none;
+    display: inline-block;
+    background-color: $blue;
+    color: white;
+    padding: 10px;
+    border: 1px solid $blue;
+    float: right;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+  }
 
-    .ipoption:not(.selected) .button-box a:hover {
-        text-decoration: underline;
-    }
+  .ipoption:not(.selected) .button-box a:hover {
+    text-decoration: underline;
+  }
 
-    .form {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-    }
+  .form {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+  }
 }
 
 main#teams {
+  width: 100%;
+  max-width: 1000px;
 
+  .red-white-team-list > div,
+  .blue-team-list > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid $red;
+
+    h2 {
+      margin: 0;
+      align-self: center;
+    }
+
+    .form-submit {
+      justify-self: end;
+    }
+
+    a {
+      text-decoration: none;
+      display: inline-block;
+      background-color: $blue;
+      color: white;
+      padding: 10px;
+      border: 1px solid $blue;
+      border-radius: 5px;
+      border: 1px solid color.scale($blue, $lightness: -15%);
+    }
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    margin: 10px;
+    box-sizing: border-box;
+    border: 1px solid black;
+    padding: 10px;
+  }
+
+  .blue-team-editor,
+  .red-team-editor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    .form-row {
+      box-sizing: border-box;
+      padding: 10px;
+      margin: 5px;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid black;
+      padding: 0.125em 0.25em;
+      margin: 0;
+      border-radius: 0.25em;
+    }
+
+    .user-editor-list {
+      box-sizing: border-box;
+      padding: 10px;
+      margin: 5px;
+    }
+
+    .border {
+      border: 1px solid black;
+    }
+
+    .user-editor {
+      border-bottom: 1px solid black;
+    }
+
+    .user-editor:last-of-type {
+      border-bottom: none;
+    }
+  }
+
+  .red-team-editor select {
+    appearance: none;
+    outline: none;
+    box-sizing: border-box;
+    background-color: transparent;
+    border: 1px solid black;
+    border-radius: 0.25em;
+    padding: 0.125em 0.25em;
+    margin: 0;
+    width: 100%;
+    font-family: inherit;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #fff;
+    line-height: 1.1;
+    background-image: linear-gradient(to top, #f9f9f9f9, #fff 33%);
+  }
+}
+
+main#output {
+  padding: 15px;
+
+  pre {
+    width: 100%;
+    height: calc(100% - 30px);
+    margin: 0px;
+    cursor: pointer;
+    box-sizing: border-box;
+    border: 1px solid black;
+    border-radius: 5px;
+    resize: none;
+    padding: 5px;
+    box-shadow: 0 0 1px 1px inset #555;
+  }
 }
