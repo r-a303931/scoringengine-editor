@@ -33,11 +33,7 @@ fn NavBar() -> Html {
     let editor_state = use_context::<state::EditorStateContext>().unwrap();
 
     let (allow_others, current_view) = match &*editor_state {
-        EditorState::HasConfig {
-            current_view,
-            config,
-            ..
-        } => (true, *current_view),
+        EditorState::HasConfig { current_view, .. } => (true, *current_view),
         _ => (false, state::CurrentView::Input),
     };
 
@@ -130,9 +126,9 @@ fn MainContent() -> Html {
             Output => html! {
                 <output::ConfigurationOutput />
             },
-            _ => {
-                html! {}
-            }
+            Machines => html! {
+                <machines::MachineConfiguration />
+            },
         },
     }
 }
@@ -154,6 +150,5 @@ fn App() -> Html {
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
-    yew::set_event_bubbling(false);
     yew::Renderer::<App>::new().render();
 }

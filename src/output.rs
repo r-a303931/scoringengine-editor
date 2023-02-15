@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use web_sys::{window, Document, HtmlElement, Window};
+use web_sys::{window, Document, HtmlElement};
 use yew::prelude::*;
 
 use crate::{config::convert_editor_to_final, error::EditorError};

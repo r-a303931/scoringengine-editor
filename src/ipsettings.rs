@@ -91,8 +91,7 @@ pub fn IpSettingsEditor() -> Html {
                         IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset { multiplier: mult },
                     )),
                     Err(e) => editor_state.dispatch(state::EditorMessage::Error(format!(
-                        "Unable to parse input: {:?}",
-                        e
+                        "Unable to parse input: {e:?}"
                     ))),
                 }
             }

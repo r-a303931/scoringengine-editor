@@ -28,15 +28,13 @@ pub enum EditorError {
 impl Display for EditorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Conversion(err) => write!(f, "error converting configuration: {}", err),
-            Self::Serialize(err) => write!(f, "error serializing configuration: {}", err),
+            Self::Conversion(err) => write!(f, "error converting configuration: {err}"),
+            Self::Serialize(err) => write!(f, "error serializing configuration: {err}"),
         }
     }
 }
 
 impl Error for EditorError {}
-
-pub type EditorResult<A> = Result<A, EditorError>;
 
 impl From<ConversionError> for EditorError {
     fn from(err: ConversionError) -> Self {

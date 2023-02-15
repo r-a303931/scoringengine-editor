@@ -166,7 +166,7 @@ fn UserListEditor(props: &UserListEditorProps) -> Html {
         html! {
             <UserEditorComponent
                 username={user.username.clone()}
-                password={user.password.clone()}
+                password={user.password}
                 {update_user}
                 {delete_user}
             />
@@ -204,7 +204,7 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
             let Some(input) = name_ref.cast::<HtmlInputElement>() else { return; };
             let value = input.value();
 
-            update_team.emit((value.into(), users.clone().into(), white_team));
+            update_team.emit((value.into(), users.clone(), white_team));
         })
     };
 
@@ -220,7 +220,7 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
 
             let white_team = value == "white";
 
-            update_team.emit((name.clone().into(), users.clone().into(), white_team));
+            update_team.emit((name.clone(), users.clone(), white_team));
         })
     };
 
@@ -349,7 +349,7 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
             let Some(input) = name_ref.cast::<HtmlInputElement>() else { return; };
             let value = input.value();
 
-            update_team.emit((value.into(), users.clone().into(), id));
+            update_team.emit((value.into(), users.clone(), id));
         })
     };
 
@@ -368,7 +368,7 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
                 Ok(id) => {
                     id_input_state.set((id.to_string().into(), None));
 
-                    update_team.emit((name.clone().into(), users.clone().into(), id));
+                    update_team.emit((name.clone(), users.clone(), id));
                 }
                 Err(e) => id_input_state.set((value.into(), Some(format!("Parse error: {e:?}")))),
             }

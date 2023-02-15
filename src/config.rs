@@ -25,7 +25,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub enum ConversionError {
-    NoIpFormatProvided,
     OneTeamConfigurationWithMultipleTeams,
     XInManualIP(String),
     NoXInTemplateIP(String),
@@ -39,7 +38,12 @@ pub enum ConversionError {
     ZeroBlueTeamID(String),
     TeamNeedsUser(String),
     TeamHasEmptyName,
+    MachineHasEmptyName,
+    MachineHasEmptyService(String),
     DuplicateUserNameForTeams(String, Vec<String>),
+    DuplicateMachineNames(String),
+    ServiceNotFullyConfigured(String, String, String),
+    DuplicateServiceName(String, String),
 }
 
 impl Error for ConversionError {}
@@ -47,12 +51,6 @@ impl Error for ConversionError {}
 impl Display for ConversionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NoIpFormatProvided => {
-                write!(
-                    f,
-                    "no ip address was provided for a machine with manual override"
-                )
-            }
             Self::OneTeamConfigurationWithMultipleTeams => {
                 write!(
                     f,
@@ -62,15 +60,13 @@ impl Display for ConversionError {
             Self::XInManualIP(machine) => {
                 write!(
                     f,
-                    "an ip address template was provided when a full ip address was expected (machine: {})",
-                    machine
+                    "an ip address template was provided when a full ip address was expected (machine: {machine})"
                 )
             }
             Self::NoXInTemplateIP(machine) => {
                 write!(
                     f,
-                    "a full ip address was provided when an ip address template was expected (machine: {})",
-                    machine
+                    "a full ip address was provided when an ip address template was expected (machine: {machine})"
                 )
             }
             Self::MultNotBigEnough(mcount, mult) => {
@@ -82,8 +78,7 @@ impl Display for ConversionError {
             Self::OffsetNotSpecified(machine) => {
                 write!(
                     f,
-                    "a machine does not have an ip address offset specified (machine {})",
-                    machine
+                    "a machine does not have an ip address offset specified (machine {machine})"
                 )
             }
             Self::DuplicateOffsets(machines) => {
@@ -96,8 +91,7 @@ impl Display for ConversionError {
             Self::DuplicateIPs(ip, m1, m2) => {
                 write!(
                     f,
-                    "duplicate ip address {} specified for machines {} and {}",
-                    ip, m1, m2
+                    "duplicate ip address {ip} specified for machines {m1} and {m2}"
                 )
             }
             Self::MissingOffset(m) => {
@@ -129,6 +123,27 @@ impl Display for ConversionError {
                     teams.join(", ")
                 )
             }
+            Self::MachineHasEmptyName => {
+                write!(f, "there can't be any machines with no name")
+            }
+            Self::MachineHasEmptyService(machine) => {
+                write!(f, "machine '{machine}' has a service with no name")
+            }
+            Self::DuplicateMachineNames(machine) => {
+                write!(f, "multiple machines with the same name '{machine}'")
+            }
+            Self::ServiceNotFullyConfigured(machine, service, err) => {
+                write!(
+                    f,
+                    "the service {service} on machine {machine} was not fully configured: {err}"
+                )
+            }
+            Self::DuplicateServiceName(machine, service) => {
+                write!(
+                    f,
+                    "the machine {machine} has multiple services named {service}"
+                )
+            }
         }
     }
 }
@@ -144,7 +159,7 @@ impl User {
         if self.username.is_empty() || self.password.is_empty() {
             return Err(ConversionError::EmptyUsernameOrPassword(
                 where_,
-                self.username.clone(),
+                self.username,
             ));
         }
 
@@ -215,76 +230,377 @@ pub struct ServiceEditor {
     pub accounts: Option<Vec<User>>,
 }
 
-trait ToEnvironment {
-    fn to_environment(&self) -> Vec<Environment>;
-}
-
-#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone)]
-pub struct DNSCheckInfo {
-    match_content: String,
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct DnsCheckInfo {
+    matching_content: String,
     qtype: String,
     domain: String,
 }
 
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct DockerCheckInfo {
+    matching_content: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct ElasticsearchCheckInfo {
+    matching_content: String,
+    index: String,
+    doc_type: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct FtpCheckInfo {
+    matching_content: String,
+    remotefilepath: String,
+    filecontents: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct HttpCheckInfo {
+    matching_content: String,
+    useragent: String,
+    vhost: String,
+    uri: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct ImapCheckInfo {
+    matching_content: String,
+    domain: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct LdapCheckInfo {
+    matching_content: String,
+    domain: String,
+    base_dn: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct SqlCheckInfo {
+    matching_content: String,
+    database: String,
+    command: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct NfsCheckInfo {
+    matching_content: String,
+    remotefilepath: String,
+    filecontents: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct PopCheckInfo {
+    matching_content: String,
+    domain: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct SmbCheckInfo {
+    matching_content: String,
+    share: String,
+    file: String,
+    hash: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct SmtpCheckInfo {
+    matching_content: String,
+    touser: String,
+    subject: String,
+    body: String,
+}
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
+pub struct RemoteCommandCheckInfo {
+    matching_content: String,
+    commands: String,
+}
+
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone)]
 pub enum ServiceDefinition {
-    DNS(DNSCheckInfo),
-    Docker,
-    Elasticsearch,
-    FTP,
-    GeneralHTTP,
-    GeneralHTTPS,
-    ICMP,
-    IMAP,
-    IMAPS,
-    MSSQL,
-    MySQL,
-    NFS,
-    POP3,
-    POP3S,
-    PostgreSQL,
-    RDP,
-    SMB,
-    SMTP,
-    SMTPS,
-    SSH,
-    VNC,
-    WinRM,
-    Wordpress,
+    Dns(Vec<DnsCheckInfo>),
+    Docker(Vec<DockerCheckInfo>),
+    Elasticsearch(Vec<ElasticsearchCheckInfo>),
+    Ftp(Vec<FtpCheckInfo>),
+    Http(Vec<HttpCheckInfo>),
+    Https(Vec<HttpCheckInfo>),
+    Icmp(Option<String>),
+    Imap(Vec<ImapCheckInfo>),
+    Imaps(Vec<ImapCheckInfo>),
+    Ldap(Vec<LdapCheckInfo>),
+    Mssql(Vec<SqlCheckInfo>),
+    Mysql(Vec<SqlCheckInfo>),
+    Nfs(Vec<NfsCheckInfo>),
+    Pop3(Vec<PopCheckInfo>),
+    Pop3s(Vec<PopCheckInfo>),
+    PostgreSql(Vec<SqlCheckInfo>),
+    Rdp(Option<String>),
+    Smb(Vec<SmbCheckInfo>),
+    Smtp(Vec<SmtpCheckInfo>),
+    Smtps(Vec<SmtpCheckInfo>),
+    Ssh(Vec<RemoteCommandCheckInfo>),
+    Vnc(Option<String>),
+    WinRm(Vec<RemoteCommandCheckInfo>),
+    Wordpress(Vec<HttpCheckInfo>),
+}
+
+macro_rules! service_definition_check {
+    (($machine_name:expr, $service_name:expr, $properties:expr), (matching_content => ($($mc_check_expr:expr => $mc_error:expr),*), $($field:ident => ($($check:expr => $error:expr),*)),*)) => {{
+        $properties
+            .iter()
+            .map(|iter_item| {
+                let errs = [
+                    $(if ($mc_check_expr)(&iter_item.matching_content) { vec![$mc_error.to_string()] } else { vec![] }),*,
+                    $( /* $field */ $(if ($check)(&iter_item.$field) { vec![$error.to_string()] } else { vec![] }),*),*
+                ].concat();
+                if errs.is_empty() {
+                    Ok(Environment {
+                        matching_content: iter_item.matching_content.clone(),
+                        properties: vec![
+                            $(EnvironmentProperties {
+                                name: "$field".to_string(),
+                                value: iter_item.$field.clone()
+                            }),*
+                        ]
+                    })
+                } else {
+                    Err(crate::config::ConversionError::ServiceNotFullyConfigured($machine_name.to_string(), $service_name.to_string(), errs.join(", ")))
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()
+    }};
 }
 
 impl ServiceDefinition {
-    pub fn environments(&self) -> Vec<Environment> {
+    pub fn environments(
+        &self,
+        mname: &str,
+        sname: &str,
+    ) -> Result<Vec<Environment>, ConversionError> {
         match self {
-            _ => vec![],
+            ServiceDefinition::Dns(dns) => service_definition_check! {
+                (mname, sname, dns),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    qtype => (
+                        str::is_empty => "DNS query type cannot be empty"
+                    ),
+                    domain => (
+                        str::is_empty => "Domain queried cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Elasticsearch(elasticsearch) => service_definition_check! {
+                (mname, sname, elasticsearch),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    index => (
+                        str::is_empty => "Index cannot be empty"
+                    ),
+                    doc_type => (
+                        str::is_empty => "Document type cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Ftp(ftp) => service_definition_check! {
+                (mname, sname, ftp),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    remotefilepath => (
+                        str::is_empty => "Remote file path cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Http(http)
+            | ServiceDefinition::Https(http)
+            | ServiceDefinition::Wordpress(http) => {
+                service_definition_check! {
+                    (mname, sname, http),
+                    (
+                        matching_content => (
+                            str::is_empty => "Service match cannot be empty"
+                        ),
+                        useragent => (
+                            str::is_empty => "User agent cannot be empty"
+                        ),
+                        vhost => (
+                            str::is_empty => "Virtual host cannot be empty"
+                        ),
+                        uri => (
+                            str::is_empty => "URI cannot be empty"
+                        )
+                    )
+                }
+            }
+            ServiceDefinition::Imap(imap) | ServiceDefinition::Imaps(imap) => {
+                service_definition_check! {
+                    (mname, sname, imap),
+                    (
+                        matching_content => (
+                            str::is_empty => "Service match cannot be empty"
+                        ),
+                        domain => (
+                            str::is_empty => "IMAP domain cannot be empty"
+                        )
+                    )
+                }
+            }
+            ServiceDefinition::Ldap(ldap) => service_definition_check! {
+                (mname, sname, ldap),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    domain => (
+                        str::is_empty => "LDAP domain cannot be empty"
+                    ),
+                    base_dn => (
+                        str::is_empty => "Base DN cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Mssql(sql)
+            | ServiceDefinition::Mysql(sql)
+            | ServiceDefinition::PostgreSql(sql) => service_definition_check! {
+                (mname, sname, sql),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    database => (
+                        str::is_empty => "Database cannot be empty"
+                    ),
+                    command => (
+                        str::is_empty => "Command to execute cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Nfs(nfs) => service_definition_check! {
+                (mname, sname, nfs),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    remotefilepath => (
+                        str::is_empty => "Remote file path cannot be empty"
+                    )
+                )
+            },
+            ServiceDefinition::Pop3(pop) | ServiceDefinition::Pop3s(pop) => {
+                service_definition_check! {
+                    (mname, sname, pop),
+                    (
+                        matching_content => (
+                            str::is_empty => "Service match cannot be empty"
+                        ),
+                        domain => (
+                            str::is_empty => "Domain cannot be empty"
+                        )
+                    )
+                }
+            }
+            ServiceDefinition::Smb(smb) => service_definition_check! {
+                (mname, sname, smb),
+                (
+                    matching_content => (
+                        str::is_empty => "Service match cannot be empty"
+                    ),
+                    share => (
+                        str::is_empty => "Share name cannot be empty"
+                    ),
+                    file => (
+                        str::is_empty => "File name cannot be empty"
+                    ),
+                    hash => (
+                        str::is_empty => "File hash cannot be empty",
+                        |hash: &str| hash.len() != 64 => "File hash must be 64 characters"
+                    )
+                )
+            },
+            ServiceDefinition::Smtp(smtp) | ServiceDefinition::Smtps(smtp) => {
+                service_definition_check! {
+                    (mname, sname, smtp),
+                    (
+                        matching_content => (
+                            str::is_empty => "Service match cannot be empty"
+                        ),
+                        touser => (
+                            str::is_empty => "'To' destination email cannot be empty",
+                            |email: &str| !email.contains('@') => "Email must contain an '@' symbol"
+                        )
+                    )
+                }
+            }
+            ServiceDefinition::Ssh(cmd) | ServiceDefinition::WinRm(cmd) => {
+                service_definition_check! {
+                    (mname, sname, cmd),
+                    (
+                        matching_content => (
+                            str::is_empty => "Service match must be empty"
+                        ),
+                        commands => (
+                            str::is_empty => "Commands cannot be empty"
+                        )
+                    )
+                }
+            }
+            ServiceDefinition::Icmp(None) => Ok(vec![Environment {
+                matching_content: "1 packets transmitted, 1 received".to_string(),
+                properties: vec![],
+            }]),
+            ServiceDefinition::Rdp(None) => Ok(vec![Environment {
+                matching_content: "SUCCESS$".to_string(),
+                properties: vec![],
+            }]),
+            ServiceDefinition::Vnc(None) => Ok(vec![Environment {
+                matching_content: "ACCOUNT FOUND".to_string(),
+                properties: vec![],
+            }]),
+            ServiceDefinition::Icmp(Some(matcher))
+            | ServiceDefinition::Rdp(Some(matcher))
+            | ServiceDefinition::Vnc(Some(matcher)) => Ok(vec![Environment {
+                matching_content: matcher.clone(),
+                properties: vec![],
+            }]),
+            _ => Ok(vec![]),
         }
     }
 
     pub fn check_name(&self) -> &'static str {
         match self {
-            ServiceDefinition::DNS { .. } => "DNSCheck",
-            ServiceDefinition::Docker => "DockerCheck",
-            ServiceDefinition::Elasticsearch => "ElasticsearchCheck",
-            ServiceDefinition::FTP => "FTPCheck",
-            ServiceDefinition::GeneralHTTP => "GeneralHTTPCheck",
-            ServiceDefinition::GeneralHTTPS => "GeneralHTTPSCheck",
-            ServiceDefinition::ICMP => "ICMPCheck",
-            ServiceDefinition::IMAP => "IMAPCheck",
-            ServiceDefinition::IMAPS => "IMAPSCheck",
-            ServiceDefinition::MSSQL => "MSSQLCheck",
-            ServiceDefinition::MySQL => "MySQLCheck",
-            ServiceDefinition::NFS => "NFSCheck",
-            ServiceDefinition::POP3 => "POP3Check",
-            ServiceDefinition::POP3S => "POP3SCheck",
-            ServiceDefinition::PostgreSQL => "PostgreSQLCheck",
-            ServiceDefinition::RDP => "RDPCheck",
-            ServiceDefinition::SMB => "SMBCheck",
-            ServiceDefinition::SMTP => "SMTPCheck",
-            ServiceDefinition::SMTPS => "SMTPSCheck",
-            ServiceDefinition::SSH => "SSHCheck",
-            ServiceDefinition::VNC => "VNCCheck",
-            ServiceDefinition::WinRM => "WinRMCheck",
-            ServiceDefinition::Wordpress => "WordpressCheck",
+            ServiceDefinition::Dns(_) => "DNSCheck",
+            ServiceDefinition::Docker(_) => "DockerCheck",
+            ServiceDefinition::Elasticsearch(_) => "ElasticsearchCheck",
+            ServiceDefinition::Ftp(_) => "FTPCheck",
+            ServiceDefinition::Http(_) => "GeneralHTTPCheck",
+            ServiceDefinition::Https(_) => "GeneralHTTPSCheck",
+            ServiceDefinition::Icmp(_) => "ICMPCheck",
+            ServiceDefinition::Imap(_) => "IMAPCheck",
+            ServiceDefinition::Imaps(_) => "IMAPSCheck",
+            ServiceDefinition::Ldap(_) => "LDAPCheck",
+            ServiceDefinition::Mssql(_) => "MSSQLCheck",
+            ServiceDefinition::Mysql(_) => "MySQLCheck",
+            ServiceDefinition::Nfs(_) => "NFSCheck",
+            ServiceDefinition::Pop3(_) => "POP3Check",
+            ServiceDefinition::Pop3s(_) => "POP3SCheck",
+            ServiceDefinition::PostgreSql(_) => "PostgreSQLCheck",
+            ServiceDefinition::Rdp(_) => "RDPCheck",
+            ServiceDefinition::Smb(_) => "SMBCheck",
+            ServiceDefinition::Smtp(_) => "SMTPCheck",
+            ServiceDefinition::Smtps(_) => "SMTPSCheck",
+            ServiceDefinition::Ssh(_) => "SSHCheck",
+            ServiceDefinition::Vnc(_) => "VNCCheck",
+            ServiceDefinition::WinRm(_) => "WinRMCheck",
+            ServiceDefinition::Wordpress(_) => "WordpressCheck",
         }
     }
 }
@@ -360,8 +676,8 @@ fn convert_id_to_ip(
                 Err(ConversionError::NoXInTemplateIP(machine_name.to_owned()))
             } else {
                 let ip = ip_template
-                    .replace("X", &id.to_string())
-                    .replace("x", &id.to_string());
+                    .replace('X', &id.to_string())
+                    .replace('x', &id.to_string());
 
                 if let Some(other_machine) = used_ips.get(&ip) {
                     Err(ConversionError::DuplicateIPs(
@@ -382,8 +698,8 @@ fn convert_id_to_ip(
             let ip = multiplier * id + ip_offset;
             if ip_template.chars().any(|c| c == 'x' || c == 'X') {
                 Ok(ip_template
-                    .replace("X", &ip.to_string())
-                    .replace("x", &ip.to_string()))
+                    .replace('X', &ip.to_string())
+                    .replace('x', &ip.to_string()))
             } else {
                 Err(ConversionError::NoXInTemplateIP(machine_name.to_owned()))
             }
@@ -480,6 +796,22 @@ pub fn convert_editor_to_final(
 
     let mut conversion_state = ConversionState::new();
 
+    {
+        let mut machine_names: HashSet<&str> = HashSet::new();
+
+        for machine in &config.machines {
+            if machine.name.is_empty() {
+                return Err(ConversionError::MachineHasEmptyName);
+            }
+
+            if machine_names.contains(&*machine.name) {
+                return Err(ConversionError::DuplicateMachineNames(machine.name.clone()));
+            }
+
+            machine_names.insert(&*machine.name);
+        }
+    }
+
     fn services_generator(
         conversion_state: &mut ConversionState,
         config: &ConfigurationEditor,
@@ -488,11 +820,32 @@ pub fn convert_editor_to_final(
         Ok(config
             .machines
             .iter()
-            .map(|machine| {
-                machine
+            .map(|machine| -> Result<Vec<ServiceConfig>, ConversionError> {
+                {
+                    let mut service_names: HashSet<&str> = HashSet::new();
+
+                    for service in &machine.services {
+                        if service.name.is_empty() {
+                            return Err(ConversionError::MachineHasEmptyService(
+                                machine.name.clone(),
+                            ));
+                        }
+
+                        if service_names.contains(&*service.name) {
+                            return Err(ConversionError::DuplicateServiceName(
+                                machine.name.clone(),
+                                service.name.clone(),
+                            ));
+                        }
+
+                        service_names.insert(&*service.name);
+                    }
+                }
+
+                Ok(machine
                     .services
                     .iter()
-                    .map(|service| {
+                    .map(|service| -> Result<ServiceConfig, ConversionError> {
                         Ok(ServiceConfig {
                             name: format!(
                                 "{}-{}-{}",
@@ -526,10 +879,12 @@ pub fn convert_editor_to_final(
                                         .collect::<Result<Vec<_>, ConversionError>>()
                                 })
                                 .transpose()?,
-                            environments: service.definition.environments(),
+                            environments: service
+                                .definition
+                                .environments(&machine.name, &service.name)?,
                         })
                     })
-                    .collect::<Result<Vec<_>, ConversionError>>()
+                    .collect::<Result<Vec<_>, ConversionError>>()?)
             })
             .collect::<Result<Vec<_>, ConversionError>>()?
             .concat())
@@ -577,7 +932,7 @@ pub fn convert_editor_to_final(
                 } else {
                     Ok(team.users.clone())
                 }?,
-                services: services_generator(&mut conversion_state, &config, &team)?,
+                services: services_generator(&mut conversion_state, &config, team)?,
             })
         })
         .collect::<Result<Vec<_>, ConversionError>>()?;

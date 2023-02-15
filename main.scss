@@ -320,3 +320,144 @@ main#output {
     box-shadow: 0 0 1px 1px inset #555;
   }
 }
+
+main#machines {
+  padding: 0;
+  padding-top: 0;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  grid-template-rows: 50px 1fr;
+  grid-template-areas:
+    "service-list machine-list-header"
+    "service-list machine-list";
+
+  .service-list {
+    grid-area: service-list;
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 15px;
+    // background: color.scale($red, $lightness: -10%);
+    border-right: 1px solid color.scale($blue, $lightness: -35%);
+  }
+
+  .new-service {
+    color: white;
+    border: 1px solid color.scale($blue, $lightness: -25%);
+    background: color.scale($blue, $lightness: +10%);
+    border-radius: 15px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    padding: 15px;
+    transition: transform 0.15s ease;
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 5px;
+      border-bottom: 1px solid color.scale($red, $lightness: -35%);
+    }
+
+    h4 {
+      margin: 2px 0;
+      margin-top: 5px;
+      border-bottom: 1px solid color.scale($red, $lightness: -35%);
+    }
+
+    .service-environment .service-property {
+      padding-left: 5px;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  .machine-list-header {
+    padding-top: 15px;
+    padding-left: 15px;
+    grid-area: machine-list-header;
+    border-bottom: 1px solid color.scale($red, $lightness: -35%);
+  }
+
+  .machine-list {
+    grid-area: machine-list;
+    overflow: auto;
+    padding-bottom: 15px;
+  }
+
+  .machine {
+    padding: 15px;
+    box-sizing: border-box;
+    margin: 15px;
+    margin-bottom: 15px;
+    border: 1px solid color.scale($blue, $lightness: -25%);
+    border-radius: 15px;
+    background: color.scale($blue, $lightness: +10%);
+  }
+
+  .machine.hovering {
+    background: $red;
+  }
+
+  .machine-body {
+    grid-template-areas: "machine-properties machine-services";
+  }
+
+  .machine-header {
+    display: grid;
+    grid-template-columns: 1fr 150px;
+    padding: 15px;
+    box-sizing: border-box;
+    margin: 5px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid color.scale($red, $lightness: -35%);
+  }
+
+  .machine-header h3 {
+    color: white;
+    cursor: text;
+    grid-column: 1 / 2;
+    margin: 0;
+    align-self: center;
+  }
+
+  .machine-header .machine-name {
+    display: grid;
+    grid-column: 1 / 2;
+    box-sizing: border-box;
+    padding: 0;
+    width: 100%;
+    align-self: center;
+  }
+
+  .machine-header input {
+    display: inline-block;
+    width: 100%;
+  }
+
+  .machine-header a {
+    justify-self: end;
+    align-self: start;
+    display: inline-block;
+    grid-column: 2 / 3;
+    text-decoration: none;
+    background-color: $blue;
+    color: white;
+    padding: 10px;
+    border: 1px solid $blue;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+  }
+
+  .machine-properties {
+    margin: 15px 0;
+    padding: 0 15px;
+    border-right: 1px solid color.scale($blue, $lightness: -15%);
+    box-sizing: border-box;
+  }
+
+  .machine-services {
+    padding: 15px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+}

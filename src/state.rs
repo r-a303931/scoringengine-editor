@@ -20,8 +20,8 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use crate::config::{
-    BlueTeamEditor, Configuration, ConfigurationEditor, IpGeneratorScheme, RedWhiteTeamEditor,
-    ServiceEditor,
+    BlueTeamEditor, Configuration, ConfigurationEditor, IpGeneratorScheme, MachineEditor,
+    RedWhiteTeamEditor, ServiceEditor,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -46,6 +46,13 @@ pub enum EditorMessage {
     AddBlueTeam(BlueTeamEditor),
     EditBlueTeam(u8, BlueTeamEditor),
     RemoveBlueTeam(u8),
+    AddMachine(MachineEditor),
+    UpdateMachine(u8, MachineEditor),
+    RemoveMachine(u8),
+    DropService(u8),
+    PickupService(ServiceEditor),
+    HoverOverMachine(u8),
+    StopHoveringOverMachines,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -59,8 +66,8 @@ pub enum EditorState {
         error: Option<String>,
         config: ConfigurationEditor,
         current_view: CurrentView,
-        currently_hovered_machine_name: Option<String>,
-        service_to_drop: Option<ServiceEditor>,
+        currently_hovered_machine_name: Option<u8>,
+        service_to_drop: Box<Option<ServiceEditor>>,
     },
 }
 
@@ -73,7 +80,7 @@ impl EditorState {
         Option<&str>,
         &ConfigurationEditor,
         &CurrentView,
-        Option<&str>,
+        Option<u8>,
         Option<&ServiceEditor>,
     ) {
         match self {
@@ -86,12 +93,12 @@ impl EditorState {
                 currently_hovered_machine_name,
                 service_to_drop,
             } => (
-                &editor_box,
+                editor_box,
                 error.as_ref().map(|x| &**x),
-                &config,
-                &current_view,
-                currently_hovered_machine_name.as_ref().map(|x| &**x),
-                service_to_drop.as_ref(),
+                config,
+                current_view,
+                currently_hovered_machine_name.clone(),
+                service_to_drop.as_ref().as_ref(),
             ),
         }
     }
@@ -137,7 +144,7 @@ impl Reducible for EditorState {
                 },
                 EditorMessage::UpdateInitialEditor(new_text),
             ) => EditorState::HasConfig {
-                editor_box: new_text.clone(),
+                editor_box: new_text,
                 config: config.clone(),
                 current_view: *current_view,
                 currently_hovered_machine_name: currently_hovered_machine_name.clone(),
@@ -146,37 +153,37 @@ impl Reducible for EditorState {
             }
             .into(),
             (EditorState::Initializing { editor_box, .. }, EditorMessage::FinishInit) => {
-                match serde_yaml::from_str::<Configuration>(&editor_box) {
+                match serde_yaml::from_str::<Configuration>(editor_box) {
                     Ok(conf) => EditorState::HasConfig {
                         editor_box: editor_box.to_string(),
                         error: None,
                         config: conf.editor_info,
                         current_view: CurrentView::Machines,
                         currently_hovered_machine_name: None,
-                        service_to_drop: None,
+                        service_to_drop: Box::new(None),
                     }
                     .into(),
                     Err(e) => EditorState::Initializing {
                         editor_box: editor_box.to_string(),
-                        error: Some(format!("Error parsing input! {}", e)),
+                        error: Some(format!("Error parsing input! {e}")),
                     }
                     .into(),
                 }
             }
             (EditorState::HasConfig { editor_box, .. }, EditorMessage::FinishInit) => {
-                match serde_yaml::from_str::<Configuration>(&editor_box) {
+                match serde_yaml::from_str::<Configuration>(editor_box) {
                     Ok(conf) => EditorState::HasConfig {
                         editor_box: editor_box.to_string(),
                         error: None,
                         config: conf.editor_info,
                         current_view: CurrentView::Machines,
                         currently_hovered_machine_name: None,
-                        service_to_drop: None,
+                        service_to_drop: Box::new(None),
                     }
                     .into(),
                     Err(e) => EditorState::Initializing {
                         editor_box: editor_box.to_string(),
-                        error: Some(format!("Error parsing input! {}", e)),
+                        error: Some(format!("Error parsing input! {e}")),
                     }
                     .into(),
                 }
@@ -192,7 +199,7 @@ impl Reducible for EditorState {
                 },
                 current_view: CurrentView::Teams,
                 currently_hovered_machine_name: None,
-                service_to_drop: None,
+                service_to_drop: Box::new(None),
             }
             .into(),
             (
@@ -410,6 +417,170 @@ impl Reducible for EditorState {
                 }
                 .into()
             }
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    currently_hovered_machine_name,
+                    service_to_drop,
+                },
+                EditorMessage::AddMachine(machine),
+            ) => {
+                let mut cconfig = config.clone();
+                cconfig.machines.push(machine);
+
+                EditorState::HasConfig {
+                    editor_box: editor_box.clone(),
+                    error: error.clone(),
+                    config: cconfig,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                    service_to_drop: service_to_drop.clone(),
+                }
+                .into()
+            }
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    currently_hovered_machine_name,
+                    service_to_drop,
+                },
+                EditorMessage::UpdateMachine(ind, machine),
+            ) => {
+                let mut cconfig = config.clone();
+                cconfig.machines[ind as usize] = machine;
+
+                EditorState::HasConfig {
+                    editor_box: editor_box.clone(),
+                    error: error.clone(),
+                    config: cconfig,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                    service_to_drop: service_to_drop.clone(),
+                }
+                .into()
+            }
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    currently_hovered_machine_name,
+                    service_to_drop,
+                },
+                EditorMessage::RemoveMachine(ind),
+            ) => {
+                let mut cconfig = config.clone();
+                cconfig.machines.remove(ind as usize);
+
+                EditorState::HasConfig {
+                    editor_box: editor_box.clone(),
+                    error: error.clone(),
+                    config: cconfig,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                    service_to_drop: service_to_drop.clone(),
+                }
+                .into()
+            }
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    service_to_drop,
+                    ..
+                },
+                EditorMessage::DropService(ind),
+            ) => match *service_to_drop.clone() {
+                Some(service) => {
+                    let mut cconfig = config.clone();
+                    cconfig.machines[ind as usize].services.push(service);
+
+                    EditorState::HasConfig {
+                        editor_box: editor_box.clone(),
+                        error: error.clone(),
+                        config: cconfig,
+                        current_view: *current_view,
+                        currently_hovered_machine_name: None,
+                        service_to_drop: Box::new(None),
+                    }
+                    .into()
+                }
+                None => EditorState::HasConfig {
+                    editor_box: editor_box.clone(),
+                    error: error.clone(),
+                    config: config.clone(),
+                    current_view: *current_view,
+                    currently_hovered_machine_name: None,
+                    service_to_drop: Box::new(None),
+                }
+                .into(),
+            },
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    currently_hovered_machine_name,
+                    ..
+                },
+                EditorMessage::PickupService(service_to_drop),
+            ) => EditorState::HasConfig {
+                editor_box: editor_box.clone(),
+                error: error.clone(),
+                config: config.clone(),
+                current_view: *current_view,
+                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                service_to_drop: Box::new(Some(service_to_drop)),
+            }
+            .into(),
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    service_to_drop,
+                    ..
+                },
+                EditorMessage::HoverOverMachine(name),
+            ) => EditorState::HasConfig {
+                editor_box: editor_box.clone(),
+                error: error.clone(),
+                config: config.clone(),
+                current_view: *current_view,
+                currently_hovered_machine_name: Some(name),
+                service_to_drop: service_to_drop.clone(),
+            }
+            .into(),
+            (
+                EditorState::HasConfig {
+                    editor_box,
+                    error,
+                    config,
+                    current_view,
+                    service_to_drop,
+                    ..
+                },
+                EditorMessage::StopHoveringOverMachines,
+            ) => EditorState::HasConfig {
+                editor_box: editor_box.clone(),
+                error: error.clone(),
+                config: config.clone(),
+                current_view: *current_view,
+                currently_hovered_machine_name: None,
+                service_to_drop: service_to_drop.clone(),
+            }
+            .into(),
 
             (EditorState::Initializing { .. }, _) => self, // misconfigured case, shouldn't happen
         }
@@ -424,7 +595,7 @@ pub struct EditorStateProviderProps {
 
 #[function_component]
 pub fn EditorStateProvider(props: &EditorStateProviderProps) -> Html {
-    let state = use_reducer(|| EditorState::default());
+    let state = use_reducer(EditorState::default);
 
     html! {
         <ContextProvider<EditorStateContext> context={state}>
