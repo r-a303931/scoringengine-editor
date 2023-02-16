@@ -329,7 +329,7 @@ main#machines {
   grid-template-columns: 250px 1fr;
   grid-template-rows: 50px 1fr;
   grid-template-areas:
-    "service-list machine-list-header"
+    "service-list-header machine-list-header"
     "service-list machine-list";
 
   .service-list {
@@ -370,13 +370,33 @@ main#machines {
     &:hover {
       transform: scale(1.05);
     }
+
+    &.hidden {
+      display: none;
+    }
   }
 
   .machine-list-header {
     padding-top: 15px;
     padding-left: 15px;
     grid-area: machine-list-header;
+    box-sizing: border-box;
     border-bottom: 1px solid color.scale($red, $lightness: -35%);
+  }
+
+  .service-list-header {
+    padding: 15px;
+    grid-area: service-list-header;
+    box-sizing: border-box;
+    border-bottom: 1px solid color.scale($red, $lightness: -35%);
+    border-right: 1px solid color.scale($red, $lightness: -35%);
+    display: grid;
+  }
+
+  .service-list-header input {
+    display: inline-block;
+    width: 100%;
+    height: 100%;
   }
 
   .machine-list {
@@ -393,6 +413,16 @@ main#machines {
     border: 1px solid color.scale($blue, $lightness: -25%);
     border-radius: 15px;
     background: color.scale($blue, $lightness: +10%);
+  }
+
+  .machine-error {
+    background-color: color.scale($red, $lightness: +15%);
+    color: white;
+    border-color: $red;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    border-radius: 5px;
   }
 
   .machine.hovering {
@@ -465,6 +495,10 @@ main#machines {
 
   .machine-property {
     color: white;
+  }
+
+  .machine-property.hidden {
+    display: none;
   }
 
   .machine-services {
