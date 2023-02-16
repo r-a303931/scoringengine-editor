@@ -34,7 +34,7 @@ macro_rules! define_service_account_editor {
 }
 
 macro_rules! define_service_environment_editor {
-    (Option<$type:ty>, $props:expr, ) => {
+    (Option<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
         html! {}
     };
     (Vec<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
@@ -182,7 +182,7 @@ macro_rules! setup_service {
             #[function_component]
             pub fn ServiceEditorComponent(props: &ServiceEditorProps) -> Html {
                 html! {
-                    <div>
+                    <div class="machine-service">
                         { format!("{} on port {}", props.name.clone(), props.port) }
                     </div>
                 }
@@ -701,7 +701,46 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 
     let ip_template_ref = use_node_ref();
 
+    let on_ip_template_change = {
+        let ip_template_ref = ip_template_ref.clone();
+        let machine_editor_error = machine_editor_error.clone();
+        let editor_state = editor_state.clone();
+        let i = props.i;
+        let machine = props.machine.clone();
+
+        Callback::from(move |_| {
+            machine_editor_error.set(None);
+            let Some(input) = ip_template_ref.cast::<HtmlInputElement>() else { return; };
+            let mut new_machine = machine.clone();
+            new_machine.ip_template = input.value().clone();
+            editor_state.dispatch(state::EditorMessage::UpdateMachine(i, new_machine));
+        })
+    };
+
     let ip_offset_ref = use_node_ref();
+
+    let on_ip_offset_change = {
+        let ip_offset_ref = ip_offset_ref.clone();
+        let machine_editor_error = machine_editor_error.clone();
+        let editor_state = editor_state.clone();
+        let i = props.i;
+        let machine = props.machine.clone();
+
+        Callback::from(move |_| {
+            let Some(input) = ip_offset_ref.cast::<HtmlInputElement>() else { return; };
+
+            match input.value().parse::<u8>() {
+                Ok(offset) => {
+                    let mut new_machine = machine.clone();
+                    new_machine.ip_offset = Some(offset);
+                    editor_state.dispatch(state::EditorMessage::UpdateMachine(i, new_machine));
+                }
+                Err(e) => {
+                    machine_editor_error.set(Some(format!("Parse error: {e:?}")));
+                }
+            }
+        })
+    };
 
     let delete_machine = {
         let editor_state = editor_state.clone();
@@ -794,6 +833,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
                             onchange={update_name}
                             onblur={stop_editing_name}
                             value={props.machine.name.clone()}
+                            placeholder="Machine name"
                         />
                     } else {
                         <h3 onclick={start_editing_name}>
@@ -828,6 +868,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
                             <input
                                 value={props.machine.ip_template.clone()}
                                 ref={ip_template_ref}
+                                onchange={on_ip_template_change}
                             />
                         </div>
                     </div>
@@ -847,6 +888,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
                             <input
                                 value={props.machine.ip_offset.map(|off| off.to_string()).unwrap_or_default()}
                                 ref={ip_offset_ref}
+                                onchange={on_ip_offset_change}
                             />
                         </div>
                     </div>

@@ -420,6 +420,7 @@ main#machines {
     color: white;
     border-color: $red;
     padding: 10px;
+    margin: 0px 10px;
     margin-bottom: 20px;
     box-sizing: border-box;
     border-radius: 5px;
@@ -489,16 +490,25 @@ main#machines {
   .machine-properties {
     margin: 15px 0;
     padding: 0 15px;
-    border-right: 1px solid color.scale($blue, $lightness: -15%);
+    border-right: 1px solid color.scale($red, $lightness: -35%);
     box-sizing: border-box;
   }
 
   .machine-property {
     color: white;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    padding: 10px 0;
+    box-sizing: border-box;
   }
 
   .machine-property.hidden {
     display: none;
+  }
+
+  .machine-property input {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .machine-services {
