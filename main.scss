@@ -311,6 +311,7 @@ main#output {
     width: 100%;
     height: calc(100% - 30px);
     margin: 0px;
+    overflow: auto;
     cursor: pointer;
     box-sizing: border-box;
     border: 1px solid black;
@@ -448,11 +449,22 @@ main#machines {
     border: 1px solid color.scale($blue, $lightness: -15%);
   }
 
+  .machine-body {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    padding: 0;
+    marign: 0;
+  }
+
   .machine-properties {
     margin: 15px 0;
     padding: 0 15px;
     border-right: 1px solid color.scale($blue, $lightness: -15%);
     box-sizing: border-box;
+  }
+
+  .machine-property {
+    color: white;
   }
 
   .machine-services {

@@ -320,31 +320,80 @@ pub struct RemoteCommandCheckInfo {
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone)]
+#[serde(tag = "type")]
 pub enum ServiceDefinition {
-    Dns(Vec<DnsCheckInfo>),
-    Docker(Vec<DockerCheckInfo>),
-    Elasticsearch(Vec<ElasticsearchCheckInfo>),
-    Ftp(Vec<FtpCheckInfo>),
-    Http(Vec<HttpCheckInfo>),
-    Https(Vec<HttpCheckInfo>),
-    Icmp(Option<String>),
-    Imap(Vec<ImapCheckInfo>),
-    Imaps(Vec<ImapCheckInfo>),
-    Ldap(Vec<LdapCheckInfo>),
-    Mssql(Vec<SqlCheckInfo>),
-    Mysql(Vec<SqlCheckInfo>),
-    Nfs(Vec<NfsCheckInfo>),
-    Pop3(Vec<PopCheckInfo>),
-    Pop3s(Vec<PopCheckInfo>),
-    PostgreSql(Vec<SqlCheckInfo>),
-    Rdp(Option<String>),
-    Smb(Vec<SmbCheckInfo>),
-    Smtp(Vec<SmtpCheckInfo>),
-    Smtps(Vec<SmtpCheckInfo>),
-    Ssh(Vec<RemoteCommandCheckInfo>),
-    Vnc(Option<String>),
-    WinRm(Vec<RemoteCommandCheckInfo>),
-    Wordpress(Vec<HttpCheckInfo>),
+    Dns {
+        environment: Vec<DnsCheckInfo>,
+    },
+    Docker {
+        environment: Vec<DockerCheckInfo>,
+    },
+    Elasticsearch {
+        environment: Vec<ElasticsearchCheckInfo>,
+    },
+    Ftp {
+        environment: Vec<FtpCheckInfo>,
+    },
+    Http {
+        environment: Vec<HttpCheckInfo>,
+    },
+    Https {
+        environment: Vec<HttpCheckInfo>,
+    },
+    Icmp {
+        environment: Option<String>,
+    },
+    Imap {
+        environment: Vec<ImapCheckInfo>,
+    },
+    Imaps {
+        environment: Vec<ImapCheckInfo>,
+    },
+    Ldap {
+        environment: Vec<LdapCheckInfo>,
+    },
+    Mssql {
+        environment: Vec<SqlCheckInfo>,
+    },
+    Mysql {
+        environment: Vec<SqlCheckInfo>,
+    },
+    Nfs {
+        environment: Vec<NfsCheckInfo>,
+    },
+    Pop3 {
+        environment: Vec<PopCheckInfo>,
+    },
+    Pop3s {
+        environment: Vec<PopCheckInfo>,
+    },
+    PostgreSql {
+        environment: Vec<SqlCheckInfo>,
+    },
+    Rdp {
+        environment: Option<String>,
+    },
+    Smb {
+        environment: Vec<SmbCheckInfo>,
+    },
+    Smtp {
+        environment: Vec<SmtpCheckInfo>,
+    },
+    Smtps {
+        environment: Vec<SmtpCheckInfo>,
+    },
+    Ssh {
+        environment: Vec<RemoteCommandCheckInfo>,
+    },
+    Vnc {
+        environment: Option<String>,
+    },
+    WinRm {
+        environment: Vec<RemoteCommandCheckInfo>,
+    },
+    Wordpress {
+        environment: Vec<HttpCheckInfo>,
+    },
 }
 
 macro_rules! service_definition_check {
@@ -381,7 +430,7 @@ impl ServiceDefinition {
         sname: &str,
     ) -> Result<Vec<Environment>, ConversionError> {
         match self {
-            ServiceDefinition::Dns(dns) => service_definition_check! {
+            ServiceDefinition::Dns { environment: dns } => service_definition_check! {
                 (mname, sname, dns),
                 (
                     matching_content => (
@@ -395,7 +444,9 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Elasticsearch(elasticsearch) => service_definition_check! {
+            ServiceDefinition::Elasticsearch {
+                environment: elasticsearch,
+            } => service_definition_check! {
                 (mname, sname, elasticsearch),
                 (
                     matching_content => (
@@ -409,7 +460,7 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Ftp(ftp) => service_definition_check! {
+            ServiceDefinition::Ftp { environment: ftp } => service_definition_check! {
                 (mname, sname, ftp),
                 (
                     matching_content => (
@@ -420,9 +471,9 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Http(http)
-            | ServiceDefinition::Https(http)
-            | ServiceDefinition::Wordpress(http) => {
+            ServiceDefinition::Http { environment: http }
+            | ServiceDefinition::Https { environment: http }
+            | ServiceDefinition::Wordpress { environment: http } => {
                 service_definition_check! {
                     (mname, sname, http),
                     (
@@ -441,7 +492,8 @@ impl ServiceDefinition {
                     )
                 }
             }
-            ServiceDefinition::Imap(imap) | ServiceDefinition::Imaps(imap) => {
+            ServiceDefinition::Imap { environment: imap }
+            | ServiceDefinition::Imaps { environment: imap } => {
                 service_definition_check! {
                     (mname, sname, imap),
                     (
@@ -454,7 +506,7 @@ impl ServiceDefinition {
                     )
                 }
             }
-            ServiceDefinition::Ldap(ldap) => service_definition_check! {
+            ServiceDefinition::Ldap { environment: ldap } => service_definition_check! {
                 (mname, sname, ldap),
                 (
                     matching_content => (
@@ -468,9 +520,9 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Mssql(sql)
-            | ServiceDefinition::Mysql(sql)
-            | ServiceDefinition::PostgreSql(sql) => service_definition_check! {
+            ServiceDefinition::Mssql { environment: sql }
+            | ServiceDefinition::Mysql { environment: sql }
+            | ServiceDefinition::PostgreSql { environment: sql } => service_definition_check! {
                 (mname, sname, sql),
                 (
                     matching_content => (
@@ -484,7 +536,7 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Nfs(nfs) => service_definition_check! {
+            ServiceDefinition::Nfs { environment: nfs } => service_definition_check! {
                 (mname, sname, nfs),
                 (
                     matching_content => (
@@ -495,7 +547,8 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Pop3(pop) | ServiceDefinition::Pop3s(pop) => {
+            ServiceDefinition::Pop3 { environment: pop }
+            | ServiceDefinition::Pop3s { environment: pop } => {
                 service_definition_check! {
                     (mname, sname, pop),
                     (
@@ -508,7 +561,7 @@ impl ServiceDefinition {
                     )
                 }
             }
-            ServiceDefinition::Smb(smb) => service_definition_check! {
+            ServiceDefinition::Smb { environment: smb } => service_definition_check! {
                 (mname, sname, smb),
                 (
                     matching_content => (
@@ -526,7 +579,8 @@ impl ServiceDefinition {
                     )
                 )
             },
-            ServiceDefinition::Smtp(smtp) | ServiceDefinition::Smtps(smtp) => {
+            ServiceDefinition::Smtp { environment: smtp }
+            | ServiceDefinition::Smtps { environment: smtp } => {
                 service_definition_check! {
                     (mname, sname, smtp),
                     (
@@ -540,7 +594,8 @@ impl ServiceDefinition {
                     )
                 }
             }
-            ServiceDefinition::Ssh(cmd) | ServiceDefinition::WinRm(cmd) => {
+            ServiceDefinition::Ssh { environment: cmd }
+            | ServiceDefinition::WinRm { environment: cmd } => {
                 service_definition_check! {
                     (mname, sname, cmd),
                     (
@@ -553,21 +608,27 @@ impl ServiceDefinition {
                     )
                 }
             }
-            ServiceDefinition::Icmp(None) => Ok(vec![Environment {
+            ServiceDefinition::Icmp { environment: None } => Ok(vec![Environment {
                 matching_content: "1 packets transmitted, 1 received".to_string(),
                 properties: vec![],
             }]),
-            ServiceDefinition::Rdp(None) => Ok(vec![Environment {
+            ServiceDefinition::Rdp { environment: None } => Ok(vec![Environment {
                 matching_content: "SUCCESS$".to_string(),
                 properties: vec![],
             }]),
-            ServiceDefinition::Vnc(None) => Ok(vec![Environment {
+            ServiceDefinition::Vnc { environment: None } => Ok(vec![Environment {
                 matching_content: "ACCOUNT FOUND".to_string(),
                 properties: vec![],
             }]),
-            ServiceDefinition::Icmp(Some(matcher))
-            | ServiceDefinition::Rdp(Some(matcher))
-            | ServiceDefinition::Vnc(Some(matcher)) => Ok(vec![Environment {
+            ServiceDefinition::Icmp {
+                environment: Some(matcher),
+            }
+            | ServiceDefinition::Rdp {
+                environment: Some(matcher),
+            }
+            | ServiceDefinition::Vnc {
+                environment: Some(matcher),
+            } => Ok(vec![Environment {
                 matching_content: matcher.clone(),
                 properties: vec![],
             }]),
@@ -577,30 +638,30 @@ impl ServiceDefinition {
 
     pub fn check_name(&self) -> &'static str {
         match self {
-            ServiceDefinition::Dns(_) => "DNSCheck",
-            ServiceDefinition::Docker(_) => "DockerCheck",
-            ServiceDefinition::Elasticsearch(_) => "ElasticsearchCheck",
-            ServiceDefinition::Ftp(_) => "FTPCheck",
-            ServiceDefinition::Http(_) => "GeneralHTTPCheck",
-            ServiceDefinition::Https(_) => "GeneralHTTPSCheck",
-            ServiceDefinition::Icmp(_) => "ICMPCheck",
-            ServiceDefinition::Imap(_) => "IMAPCheck",
-            ServiceDefinition::Imaps(_) => "IMAPSCheck",
-            ServiceDefinition::Ldap(_) => "LDAPCheck",
-            ServiceDefinition::Mssql(_) => "MSSQLCheck",
-            ServiceDefinition::Mysql(_) => "MySQLCheck",
-            ServiceDefinition::Nfs(_) => "NFSCheck",
-            ServiceDefinition::Pop3(_) => "POP3Check",
-            ServiceDefinition::Pop3s(_) => "POP3SCheck",
-            ServiceDefinition::PostgreSql(_) => "PostgreSQLCheck",
-            ServiceDefinition::Rdp(_) => "RDPCheck",
-            ServiceDefinition::Smb(_) => "SMBCheck",
-            ServiceDefinition::Smtp(_) => "SMTPCheck",
-            ServiceDefinition::Smtps(_) => "SMTPSCheck",
-            ServiceDefinition::Ssh(_) => "SSHCheck",
-            ServiceDefinition::Vnc(_) => "VNCCheck",
-            ServiceDefinition::WinRm(_) => "WinRMCheck",
-            ServiceDefinition::Wordpress(_) => "WordpressCheck",
+            ServiceDefinition::Dns { .. } => "DNSCheck",
+            ServiceDefinition::Docker { .. } => "DockerCheck",
+            ServiceDefinition::Elasticsearch { .. } => "ElasticsearchCheck",
+            ServiceDefinition::Ftp { .. } => "FTPCheck",
+            ServiceDefinition::Http { .. } => "GeneralHTTPCheck",
+            ServiceDefinition::Https { .. } => "GeneralHTTPSCheck",
+            ServiceDefinition::Icmp { .. } => "ICMPCheck",
+            ServiceDefinition::Imap { .. } => "IMAPCheck",
+            ServiceDefinition::Imaps { .. } => "IMAPSCheck",
+            ServiceDefinition::Ldap { .. } => "LDAPCheck",
+            ServiceDefinition::Mssql { .. } => "MSSQLCheck",
+            ServiceDefinition::Mysql { .. } => "MySQLCheck",
+            ServiceDefinition::Nfs { .. } => "NFSCheck",
+            ServiceDefinition::Pop3 { .. } => "POP3Check",
+            ServiceDefinition::Pop3s { .. } => "POP3SCheck",
+            ServiceDefinition::PostgreSql { .. } => "PostgreSQLCheck",
+            ServiceDefinition::Rdp { .. } => "RDPCheck",
+            ServiceDefinition::Smb { .. } => "SMBCheck",
+            ServiceDefinition::Smtp { .. } => "SMTPCheck",
+            ServiceDefinition::Smtps { .. } => "SMTPSCheck",
+            ServiceDefinition::Ssh { .. } => "SSHCheck",
+            ServiceDefinition::Vnc { .. } => "VNCCheck",
+            ServiceDefinition::WinRm { .. } => "WinRMCheck",
+            ServiceDefinition::Wordpress { .. } => "WordpressCheck",
         }
     }
 }
@@ -658,37 +719,41 @@ fn convert_id_to_ip(
     match generator {
         OneTeam => {
             if ip_template.chars().any(|c| c == 'x' || c == 'X') {
-                Err(ConversionError::XInManualIP(machine_name.to_owned()))
+                return Err(ConversionError::XInManualIP(machine_name.to_owned()));
             } else if let Some(other_machine) = used_ips.get(ip_template) {
-                Err(ConversionError::DuplicateIPs(
-                    ip_template.to_owned(),
-                    machine_name.to_owned(),
-                    other_machine.to_owned(),
-                ))
-            } else {
-                used_ips.insert(ip_template.to_owned(), machine_name.to_owned());
-
-                Ok(ip_template.to_string())
+                if other_machine != machine_name {
+                    return Err(ConversionError::DuplicateIPs(
+                        ip_template.to_owned(),
+                        machine_name.to_owned(),
+                        other_machine.to_owned(),
+                    ));
+                }
             }
+
+            used_ips.insert(ip_template.to_owned(), machine_name.to_owned());
+
+            Ok(ip_template.to_string())
         }
         ReplaceXWithId => {
             if !ip_template.chars().any(|c| c == 'x' || c == 'X') {
-                Err(ConversionError::NoXInTemplateIP(machine_name.to_owned()))
+                return Err(ConversionError::NoXInTemplateIP(machine_name.to_owned()));
             } else {
                 let ip = ip_template
                     .replace('X', &id.to_string())
                     .replace('x', &id.to_string());
 
                 if let Some(other_machine) = used_ips.get(&ip) {
-                    Err(ConversionError::DuplicateIPs(
-                        ip,
-                        machine_name.to_owned(),
-                        other_machine.to_owned(),
-                    ))
-                } else {
-                    used_ips.insert(ip.to_owned(), machine_name.to_owned());
-                    Ok(ip)
+                    if other_machine != machine_name {
+                        return Err(ConversionError::DuplicateIPs(
+                            ip,
+                            machine_name.to_owned(),
+                            other_machine.to_owned(),
+                        ));
+                    }
                 }
+
+                used_ips.insert(ip.to_owned(), machine_name.to_owned());
+                Ok(ip)
             }
         }
         ReplaceXWithIdTimesMultiplierPlusOffset { multiplier } => {

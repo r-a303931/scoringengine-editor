@@ -18,7 +18,10 @@
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::{config::MachineEditor, state};
+use crate::{
+    config::{self, MachineEditor},
+    state,
+};
 
 macro_rules! count_properties {
     () => (0usize);
@@ -31,24 +34,28 @@ macro_rules! define_service_account_editor {
 }
 
 macro_rules! define_service_environment_editor {
-    (None, $props:expr, ) => {};
-    (vec![], $props:expr, $($property:ident => $property_name:expr),*) => {};
+    (Option<$type:ty>, $props:expr, ) => {
+        html! {}
+    };
+    (Vec<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
+        html! {}
+    };
 }
 
 macro_rules! setup_service {
     (
-        ($name:ident, $pretty_name:expr),
+        ($name:ident, $pretty_name:expr, $service_definition_type:ty),
         ServiceEditor {
             name => $new_name:expr,
             port => $new_port:expr,
             points => $new_points:expr,
             accounts => $new_accounts:expr,
-            definition => $new_service:expr
+            definition => $new_service:ident
         },
         ($($property:ident => $prop_pretty_name:expr),*)
     ) => {
         setup_service!{
-            ($name, $pretty_name),
+            ($name, $pretty_name, $service_definition_type),
             ServiceEditor {
                 name => $new_name,
                 port => $new_port,
@@ -60,13 +67,13 @@ macro_rules! setup_service {
         }
     };
     (
-        ($name:ident, $pretty_name:expr),
+        ($name:ident, $pretty_name:expr, $service_definition_type:ty),
         ServiceEditor {
             name => $new_name:expr,
             port => $new_port:expr,
             points => $new_points:expr,
             accounts => $new_accounts:expr,
-            definition => $new_service:expr, $new_service_params:expr
+            definition => $new_service:ident, $new_service_params:expr
         },
         ($($property:ident => $prop_pretty_name:expr),*)
     ) => {
@@ -91,7 +98,7 @@ macro_rules! setup_service {
                             port: $new_port,
                             points: $new_points,
                             accounts: $new_accounts,
-                            definition: $new_service($new_service_params),
+                            definition: config::ServiceDefinition::$new_service { environment: $new_service_params },
                         });
                     })
                 };
@@ -152,18 +159,67 @@ macro_rules! setup_service {
                     </div>
                 }
             }
+
+            #[derive(Properties, PartialEq)]
+            pub struct ServiceEditorProps {
+                pub update_service: Callback<config::ServiceEditor>,
+                pub name: String,
+                pub port: u16,
+                pub points: u16,
+                pub accounts: Option<Vec<config::User>>,
+                pub service_definition: $service_definition_type
+            }
+
+            #[function_component]
+            pub fn ServiceEditorComponent(props: &ServiceEditorProps) -> Html {
+                html! {
+                    <div>
+                        { format!("{} on port {}", props.name.clone(), props.port) }
+                    </div>
+                }
+            }
+        }
+    };
+}
+
+macro_rules! setup_general_service_editor {
+    ($($case:ident => $mod:ident),*) => {
+        #[derive(Properties, PartialEq)]
+        struct ServiceEditorComponentProps {
+            pub update_service: Callback<config::ServiceEditor>,
+            pub delete_service: Callback<()>,
+            pub service_to_edit: config::ServiceEditor,
+        }
+
+        #[function_component]
+        fn ServiceEditorComponent(props: &ServiceEditorComponentProps) -> Html {
+            match &props.service_to_edit.definition {
+                $(
+                    config::ServiceDefinition::$case { environment } => html! {
+                        <$mod::ServiceEditorComponent
+                            update_service={props.update_service.clone()}
+                            name={props.service_to_edit.name.clone()}
+                            port={props.service_to_edit.port}
+                            points={props.service_to_edit.points}
+                            accounts={props.service_to_edit.accounts.clone()}
+                            service_definition={environment.clone()}
+                        />
+                    }
+                ),*
+                , _ => todo!()
+            }
         }
     };
 }
 
 setup_service! {
-    (dns, "DNS"),
+    (dns, "DNS", Vec<config::DnsCheckInfo>),
     ServiceEditor {
         name => "DNS",
         port => 53,
         points => 100,
         accounts => None,
-        definition => config::ServiceDefinition::Dns
+        definition => Dns
     },
     (
         qtype => "Query type",
@@ -171,28 +227,82 @@ setup_service! {
     )
 }
 setup_service! {
-    (icmp, "ICMP Ping"),
+    (icmp, "ICMP Ping", Option<String>),
     ServiceEditor {
         name => "ICMP",
         port => 0,
         points => 25,
         accounts => None,
-        definition => config::ServiceDefinition::Icmp, None
+        definition => Icmp, None
     },
     ()
 }
 setup_service! {
-    (ssh, "SSH"),
+    (ssh, "SSH", Vec<config::RemoteCommandCheckInfo>),
     ServiceEditor {
         name => "SSH",
-        port => 0,
-        points => 25,
+        port => 22,
+        points => 100,
         accounts => Some(vec![]),
-        definition => config::ServiceDefinition::Ssh
+        definition => Ssh
     },
     (
         commands => "Commands"
     )
+}
+
+setup_general_service_editor! {
+    Dns => dns,
+    Icmp => icmp,
+    Ssh => ssh
+}
+
+#[derive(Properties, PartialEq)]
+pub struct MachineServiceListEditorProps {
+    pub update_services: Callback<Vec<config::ServiceEditor>>,
+    pub services: Vec<config::ServiceEditor>,
+}
+
+#[function_component]
+pub fn MachineServiceListEditor(props: &MachineServiceListEditorProps) -> Html {
+    let services_vec = props.services.clone();
+
+    let services = props.services.iter().enumerate().map(|(i, service)| {
+        let service_to_edit = service.clone();
+
+        let update_service = {
+            let update_services = props.update_services.clone();
+            let new_services = services_vec.clone();
+            Callback::from(move |new_service| {
+                let mut new_services = new_services.clone();
+                new_services[i] = new_service;
+                update_services.emit(new_services);
+            })
+        };
+
+        let delete_service = {
+            let update_services = props.update_services.clone();
+            let new_services = services_vec.clone();
+            Callback::from(move |_| {
+                let mut new_services = new_services.clone();
+                new_services.remove(i);
+                update_services.emit(new_services);
+            })
+        };
+
+        html! {
+            <ServiceEditorComponent
+                key={i}
+                {update_service}
+                {delete_service}
+                {service_to_edit}
+            />
+        }
+    });
+
+    html! {
+        { for services }
+    }
 }
 
 #[derive(Properties, PartialEq)]
@@ -204,6 +314,8 @@ struct MachineEditorProps {
 #[function_component]
 fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
+
+    let machine_editor_error = use_state(Option::<String>::default);
 
     let editing_name = use_state(bool::default);
     let editing_name_ref = use_node_ref();
@@ -234,10 +346,12 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
         let editor_state = editor_state.clone();
         let editing_name = editing_name.clone();
         let editing_name_ref = editing_name_ref.clone();
+        let machine_editor_error = machine_editor_error.clone();
         let machine = props.machine.clone();
         let i = props.i;
 
         Callback::from(move |_| {
+            machine_editor_error.set(None);
             let Some(input) = editing_name_ref.cast::<HtmlInputElement>() else { return; };
             let mut new_machine = machine.clone();
             new_machine.name = input.value().clone();
@@ -245,6 +359,8 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
             editing_name.set(false);
         })
     };
+
+    let ip_template_ref = use_node_ref();
 
     let delete_machine = {
         let editor_state = editor_state.clone();
@@ -281,11 +397,41 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
     let ondrop = {
         let editor_state = editor_state.clone();
         let i = props.i;
+        let is_name_empty = props.machine.name.is_empty();
+        let machine_editor_error = machine_editor_error.clone();
 
         Callback::from(move |e: DragEvent| {
             e.prevent_default();
 
+            if is_name_empty {
+                machine_editor_error.set(Some(
+                    "Please give the machine a name before adding services".to_owned(),
+                ));
+
+                return;
+            }
+
             editor_state.dispatch(state::EditorMessage::DropService(i));
+        })
+    };
+
+    let update_services = {
+        let editor_state = editor_state.clone();
+        let i = props.i;
+        let name = props.machine.name.clone();
+        let ip_offset = props.machine.ip_offset.clone();
+        let ip_template = props.machine.ip_template.clone();
+
+        Callback::from(move |new_services| {
+            editor_state.dispatch(state::EditorMessage::UpdateMachine(
+                i,
+                MachineEditor {
+                    name: name.clone(),
+                    ip_offset: ip_offset.clone(),
+                    ip_template: ip_template.clone(),
+                    services: new_services,
+                },
+            ))
         })
     };
 
@@ -320,15 +466,34 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
                 </a>
             </div>
 
+            if let Some(err) = &*machine_editor_error {
+                <div class="machine-error">
+                    {err}
+                </div>
+            }
+
+
             <div class="machine-body">
                 <div class="machine-properties">
-                    <div class="">
+                    <div class="machine-property">
+                        <div class="machine-property-name">
+                            { "IP template:" }
+                        </div>
 
+                        <div class="machine-property-value">
+                            <input
+                                value={props.machine.ip_template.clone()}
+                                ref={ip_template_ref}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div class="machine-services">
-
+                    <MachineServiceListEditor
+                        {update_services}
+                        services={props.machine.services.clone()}
+                    />
                 </div>
             </div>
         </div>
