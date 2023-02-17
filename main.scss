@@ -345,7 +345,7 @@ main#machines {
     color: white;
     border: 1px solid color.scale($blue, $lightness: -25%);
     background: color.scale($blue, $lightness: +10%);
-    border-radius: 15px;
+    box-shadow: 0px 1px 3px 1px black;
     margin-bottom: 15px;
     box-sizing: border-box;
     padding: 15px;
@@ -363,7 +363,7 @@ main#machines {
       border-bottom: 1px solid color.scale($red, $lightness: -35%);
     }
 
-    .service-environment .service-property {
+    .service-environment .new-service-property {
       padding-left: 5px;
     }
 
@@ -411,7 +411,7 @@ main#machines {
     margin: 15px;
     margin-bottom: 15px;
     border: 1px solid color.scale($blue, $lightness: -25%);
-    border-radius: 15px;
+    box-shadow: 0px 1px 3px 1px black;
     background: color.scale($blue, $lightness: +10%);
   }
 
@@ -464,6 +464,7 @@ main#machines {
   .machine-header input {
     display: inline-block;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .machine-header a {
@@ -478,6 +479,10 @@ main#machines {
     border: 1px solid $blue;
     border-radius: 5px;
     border: 1px solid color.scale($blue, $lightness: -15%);
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .machine-body {
@@ -515,5 +520,175 @@ main#machines {
     padding: 15px;
     margin: 0;
     box-sizing: border-box;
+  }
+
+  .machine-service {
+    padding: 15px;
+    margin: 15px;
+    box-sizing: border-box;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+    background: color.scale($blue, $lightness: +15%);
+    box-shadow: 0px 1px 3px 0px black;
+
+    .error {
+      background-color: color.scale($red, $lightness: +15%);
+      color: white;
+      border-color: $red;
+      padding: 10px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+      border-radius: 5px;
+    }
+  }
+
+  .machine-service-header {
+    display: grid;
+    grid-template-columns: 1fr 250px;
+    padding: 15px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    border-bottom: 1px solid color.scale($red, $lightness: -35%);
+
+    h3 {
+      color: white;
+      grid-column: 1 / 2;
+      margin: 0;
+      align-self: center;
+    }
+
+    a {
+      text-decoration: none;
+      display: inline-block;
+      background-color: $blue;
+      color: white;
+      align-self: center;
+      justify-self: end;
+      padding: 10px;
+      border: 1px solid $blue;
+      margin: 0px;
+      float: right;
+      border-radius: 5px;
+      border: 1px solid color.scale($blue, $lightness: -15%);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .machine-service-properties {
+  }
+
+  .service-properties-pane {
+    padding: 15px;
+    border-top: 1px solid color.scale($red, $lightness: -35%);
+    box-sizing: border-box;
+  }
+
+  .service-properties-pane.hidden {
+    display: none;
+  }
+
+  .service-properties-tabs {
+    margin: 0;
+    margin-top: 10px;
+  }
+
+  .service-properties-tab {
+    display: inline-block;
+    border-top-right-radius: 15px;
+    border-top-left-radius: 15px;
+    margin: 0;
+    margin-right: 10px;
+    padding: 7px;
+    color: white;
+    box-sizing: border-box;
+    background: $blue;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+    cursor: pointer;
+    border-bottom: none;
+
+    &:hover {
+      text-decoration: underline dotted;
+    }
+
+    &.hidden {
+      display: none;
+    }
+  }
+
+  .service-properties-tab.selected {
+    background: color.scale($blue, $lightness: +15%);
+    text-decoration: underline;
+  }
+
+  .service-property {
+    display: grid;
+    padding-bottom: 15px;
+    grid-template-columns: 1fr 1fr;
+    box-sizing: border-box;
+
+    .service-property-name {
+      color: white;
+    }
+
+    .service-property-value input {
+    }
+  }
+
+  .service-properties-pane .add-user {
+    text-decoration: none;
+    display: inline-block;
+    background-color: $blue;
+    color: white;
+    align-self: center;
+    justify-self: end;
+    padding: 10px;
+    border: 1px solid $blue;
+    margin: 0px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .service-user {
+    border-top: 1px solid color.scale($red, $lightness: -35%);
+    padding-top: 15px;
+  }
+
+  .service-user-row {
+    display: grid;
+    padding-bottom: 15px;
+    grid-template-columns: 1fr 1fr;
+    box-sizing: border-box;
+
+    div:nth-of-type(1) {
+      color: white;
+    }
+
+    div:nth-of-type(2) {
+    }
+
+    a {
+      text-decoration: none;
+      display: inline-block;
+      background-color: $blue;
+      color: white;
+      align-self: center;
+      justify-self: start;
+      padding: 10px;
+      border: 1px solid $blue;
+      margin: 0px;
+      border-radius: 5px;
+      border: 1px solid color.scale($blue, $lightness: -15%);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }

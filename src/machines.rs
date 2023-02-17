@@ -28,11 +28,6 @@ macro_rules! count_properties {
     ($p:ident,$($p2:ident,)*) => (1usize + count_properties!($($p2,)*));
 }
 
-macro_rules! define_service_account_editor {
-    ($props:expr, None) => {};
-    ($props:expr, Some(vec![])) => {};
-}
-
 macro_rules! define_service_environment_editor {
     (Option<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
         html! {}
@@ -80,6 +75,7 @@ macro_rules! setup_service {
         mod $name {
             use crate::config::{self, ServiceEditor};
             use yew::prelude::*;
+            use web_sys::HtmlInputElement;
 
             #[derive(Properties, PartialEq)]
             pub struct NewServiceComponentProps {
@@ -159,7 +155,7 @@ macro_rules! setup_service {
                                 </h4>
 
                                 $(
-                                    <div class="service-property">
+                                    <div class="new-service-property">
                                         { $prop_pretty_name }
                                     </div>
                                 )*
@@ -172,6 +168,7 @@ macro_rules! setup_service {
             #[derive(Properties, PartialEq)]
             pub struct ServiceEditorProps {
                 pub update_service: Callback<config::ServiceEditor>,
+                pub delete_service: Callback<()>,
                 pub name: String,
                 pub port: u16,
                 pub points: u16,
@@ -181,9 +178,440 @@ macro_rules! setup_service {
 
             #[function_component]
             pub fn ServiceEditorComponent(props: &ServiceEditorProps) -> Html {
+                let delete_service = {
+                    let delete_service = props.delete_service.clone();
+
+                    Callback::from(move |_| delete_service.emit(()))
+                };
+
+                let service_editor_error = use_state(Option::<AttrValue>::default);
+
+                #[derive(Copy, Clone)]
+                enum Tabs {
+                    Essentials,
+                    Environments,
+                    Accounts
+                }
+
+                let current_tab_index = use_state(|| Tabs::Essentials);
+
+                let tab_click_handler = |new_tab: Tabs| -> Callback<MouseEvent> {
+                    let current_tab_index = current_tab_index.clone();
+
+                    Callback::from(move |_| {
+                        current_tab_index.set(new_tab);
+                    })
+                };
+
+                let service_port_ref = use_node_ref();
+
+                let set_service_port = {
+                    let service_editor_error = service_editor_error.clone();
+                    let service_port_ref = service_port_ref.clone();
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let points = props.points;
+                    let accounts = props.accounts.clone();
+                    let service = props.service_definition.clone();
+
+                    Callback::from(move |_| {
+                        let Some(input) = service_port_ref.cast::<HtmlInputElement>() else { return; };
+
+                        match input.value().parse::<u16>() {
+                            Ok(port) => {
+                                service_editor_error.set(None);
+                                update_service.emit(config::ServiceEditor {
+                                    name: name.clone(),
+                                    port,
+                                    points,
+                                    accounts: accounts.clone(),
+                                    definition: config::ServiceDefinition::$new_service {
+                                        environment: service.clone()
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                service_editor_error.set(Some(format!("Error parsing service port: {e:?}").into()));
+                            }
+                        }
+                    })
+                };
+
+                let service_points_ref = use_node_ref();
+
+                let set_service_points = {
+                    let service_editor_error = service_editor_error.clone();
+                    let service_points_ref = service_points_ref.clone();
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let port = props.port;
+                    let accounts = props.accounts.clone();
+                    let service = props.service_definition.clone();
+
+                    Callback::from(move |_| {
+                        let Some(input) = service_points_ref.cast::<HtmlInputElement>() else { return; };
+
+                        match input.value().parse::<u16>() {
+                            Ok(points) => {
+                                service_editor_error.set(None);
+                                update_service.emit(config::ServiceEditor {
+                                    name: name.clone(),
+                                    port,
+                                    points,
+                                    accounts: accounts.clone(),
+                                    definition: config::ServiceDefinition::$new_service {
+                                        environment: service.clone()
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                service_editor_error.set(Some(format!("Error parsing service port: {e:?}").into()));
+                            }
+                        }
+                    })
+                };
+
+                let service_name_ref = use_node_ref();
+
+                let set_service_name = {
+                    let service_name_ref = service_name_ref.clone();
+                    let update_service = props.update_service.clone();
+                    let port = props.port;
+                    let points = props.points;
+                    let accounts = props.accounts.clone();
+                    let service = props.service_definition.clone();
+
+                    Callback::from(move |_| {
+                        let Some(input) = service_name_ref.cast::<HtmlInputElement>() else { return; };
+                        let new_service = config::ServiceEditor {
+                            name: input.value().clone(),
+                            port,
+                            points,
+                            accounts: accounts.clone(),
+                            definition: config::ServiceDefinition::$new_service {
+                                environment: service.clone()
+                            }
+                        };
+
+                        update_service.emit(new_service);
+                    })
+                };
+
+                let add_account = {
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let port = props.port;
+                    let points = props.points;
+                    let accounts = props.accounts.clone();
+                    let service = props.service_definition.clone();
+
+                    Callback::from(move |_| {
+                        let accounts = accounts.clone().map(|accounts| {
+                            let mut accounts = accounts.clone();
+                            accounts.push(config::User {
+                                username: "".to_owned(),
+                                password: "Chiapet1!".to_owned()
+                            });
+                            accounts
+                        });
+                        let new_service = config::ServiceEditor {
+                            name: name.clone(),
+                            port,
+                            points,
+                            accounts,
+                            definition: config::ServiceDefinition::$new_service {
+                                environment: service.clone()
+                            }
+                        };
+                        update_service.emit(new_service);
+                    })
+                };
+
+                #[derive(Properties, PartialEq)]
+                struct AccountEditorProps {
+                    pub update_user: Callback<config::User>,
+                    pub delete_user: Callback<()>,
+                    pub user: config::User,
+                }
+
+                #[function_component]
+                fn AccountEditor(props: &AccountEditorProps) -> Html {
+                    let username_ref = use_node_ref();
+
+                    let username_change = {
+                        let update_user = props.update_user.clone();
+                        let user = props.user.clone();
+                        let username_ref = username_ref.clone();
+
+                        Callback::from(move |_| {
+                            let Some(input) = username_ref.cast::<HtmlInputElement>() else { return; };
+                            let mut new_user = user.clone();
+                            new_user.username = input.value();
+                            update_user.emit(new_user);
+                        })
+                    };
+
+                    let password_ref = use_node_ref();
+
+                    let password_change = {
+                        let update_user = props.update_user.clone();
+                        let user = props.user.clone();
+                        let password_ref = password_ref.clone();
+
+                        Callback::from(move |_| {
+                            let Some(input) = password_ref.cast::<HtmlInputElement>() else { return; };
+                            let mut new_user = user.clone();
+                            new_user.password = input.value();
+                            update_user.emit(new_user);
+                        })
+                    };
+
+                    let delete_user = {
+                        let delete_user = props.delete_user.clone();
+
+                        Callback::from(move |_| delete_user.emit(()))
+                    };
+
+                    html! {
+                        <div class="service-user">
+                            <div class="service-user-row">
+                                <div>
+                                    { "Username" }
+                                </div>
+
+                                <div>
+                                    <input
+                                        value={props.user.username.clone()}
+                                        ref={username_ref}
+                                        onchange={username_change}
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="service-user-row">
+                                <div>
+                                    { "Password" }
+                                </div>
+
+                                <div>
+                                    <input
+                                        value={props.user.password.clone()}
+                                        onchange={password_change}
+                                        ref={password_ref}
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="service-user-row">
+                                <div />
+
+                                <div>
+                                    <a href="#" onclick={delete_user}>
+                                        { "Delete user" }
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
+                let accounts = props.accounts.clone().unwrap_or(vec![]);
+                let accounts = accounts.iter().enumerate().map(|(i, account)| {
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let port = props.port;
+                    let points = props.points;
+                    let service = props.service_definition.clone();
+                    let accounts = props.accounts.clone();
+
+                    let update_user = {
+                        let update_service = update_service.clone();
+                        let name = name.clone();
+                        let port = port;
+                        let points = points;
+                        let service = service.clone();
+                        let accounts = accounts.clone();
+
+                        Callback::from(move |account| {
+                            let accounts = accounts.as_ref().map(|accounts| {
+                                let mut new_accounts = accounts.clone();
+                                new_accounts[i] = account;
+                                new_accounts
+                            });
+                            update_service.emit(ServiceEditor {
+                                name: name.clone(),
+                                port,
+                                points,
+                                definition: config::ServiceDefinition::$new_service {
+                                    environment: service.clone()
+                                },
+                                accounts
+                            })
+                        })
+                    };
+
+                    let delete_user = {
+                        let update_service = update_service.clone();
+                        let name = name.clone();
+                        let port = port;
+                        let points = points;
+                        let service = service.clone();
+                        let accounts = accounts.clone();
+
+                        Callback::from(move |_| {
+                            let accounts = accounts.as_ref().map(|accounts| {
+                                let mut new_accounts = accounts.clone();
+                                new_accounts.remove(i);
+                                new_accounts
+                            });
+                            update_service.emit(ServiceEditor {
+                                name: name.clone(),
+                                port,
+                                points,
+                                definition: config::ServiceDefinition::$new_service {
+                                    environment: service.clone()
+                                },
+                                accounts
+                            })
+                        })
+                    };
+
+                    html! {
+                        <AccountEditor
+                            key={i}
+                            user={account.clone()}
+                            {update_user}
+                            {delete_user}
+                        />
+                    }
+                });
+
                 html! {
                     <div class="machine-service">
-                        { format!("{} on port {}", props.name.clone(), props.port) }
+                        <div class="machine-service-header">
+                            <h3>
+                                { $pretty_name } { ":" }
+                            </h3>
+
+                            <a href="#" onclick={delete_service}>
+                                { "Remove service" }
+                            </a>
+                        </div>
+
+                        if let Some(err) = &*service_editor_error {
+                            <div class="error">
+                                { err }
+                            </div>
+                        }
+
+                        <div class="machine-service-properties">
+                            <div class="service-properties-tabs">
+                                <a
+                                    class={classes!(
+                                        "service-properties-tab",
+                                        Some("selected").filter(|_| matches!(*current_tab_index, Tabs::Essentials))
+                                    )}
+                                    onclick={tab_click_handler(Tabs::Essentials)}
+                                >
+                                    { "Basic properties" }
+                                </a>
+
+                                <a
+                                    class={classes!(
+                                        "service-properties-tab",
+                                        Some("selected").filter(|_| matches!(*current_tab_index, Tabs::Environments))
+                                    )}
+                                    onclick={tab_click_handler(Tabs::Environments)}
+                                >
+                                    { "Checks" }
+                                </a>
+
+                                <a
+                                    class={classes!(
+                                        "service-properties-tab",
+                                        Some("selected").filter(|_| matches!(*current_tab_index, Tabs::Accounts)),
+                                        Some("hidden").filter(|_| {
+                                            let accounts: Option<Vec<config::User>> = $new_accounts;
+                                            accounts.is_none()
+                                        })
+                                    )}
+                                    onclick={tab_click_handler(Tabs::Accounts)}
+                                >
+                                    { "Accounts" }
+                                </a>
+                            </div>
+
+                            <div
+                                class={classes!(
+                                    "service-properties-pane",
+                                    Some("hidden").filter(|_| !matches!(*current_tab_index, Tabs::Essentials))
+                                )}
+                            >
+                                <div class="service-property">
+                                    <div class="service-property-name">
+                                        { "Service name:" }
+                                    </div>
+
+                                    <div class="service-property-value">
+                                        <input
+                                            ref={service_name_ref}
+                                            value={props.name.clone()}
+                                            onchange={set_service_name}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="service-property">
+                                    <div class="service-property-name">
+                                        { "Service port:" }
+                                    </div>
+
+                                    <div class="service-property-value">
+                                        <input
+                                            ref={service_port_ref}
+                                            value={props.port.to_string()}
+                                            onchange={set_service_port}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="service-property">
+                                    <div class="service-property-name">
+                                        { "Points:" }
+                                    </div>
+
+                                    <div class="service-property-value">
+                                        <input
+                                            ref={service_points_ref}
+                                            value={props.points.to_string()}
+                                            onchange={set_service_points}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class={classes!(
+                                    "service-properties-pane",
+                                    Some("hidden").filter(|_| !matches!(*current_tab_index, Tabs::Environments))
+                                )}
+                            >
+                                { "Environments" }
+                            </div>
+
+                            <div
+                                class={classes!(
+                                    "service-properties-pane",
+                                    Some("hidden").filter(|_| !matches!(*current_tab_index, Tabs::Accounts))
+                                )}
+                            >
+                                <a href="#" onclick={add_account} class="add-user">
+                                    { "Add account" }
+                                </a>
+
+                                { for accounts }
+                            </div>
+                        </div>
                     </div>
                 }
             }
@@ -207,6 +635,7 @@ macro_rules! setup_general_service_editor {
                     config::ServiceDefinition::$case { environment } => html! {
                         <$mod::ServiceEditorComponent
                             update_service={props.update_service.clone()}
+                            delete_service={props.delete_service.clone()}
                             name={props.service_to_edit.name.clone()}
                             port={props.service_to_edit.port}
                             points={props.service_to_edit.points}
