@@ -139,8 +139,121 @@ macro_rules! define_service_environment_editor {
     ($service_definition_type:ty, $new_service:ident, $($property:ident => $property_name:expr),*) => {
         mod environment_editor {
             use crate::config;
-            use web_sys::HtmlInputElement;
             use yew::prelude::*;
+
+            trait Extractor<T> {
+                type Item;
+            }
+
+            impl<T> Extractor<T> for Vec<T> {
+                type Item = T;
+            }
+
+            #[derive(PartialEq, Clone)]
+            pub struct Environment {
+                matching_content: String,
+                $($property: String),*
+            }
+
+            #[derive(Properties, PartialEq)]
+            struct EnvironmentEditorProperties {
+                pub update_check: Callback<Environment>,
+                pub delete_check: Callback<()>,
+                pub environment: Environment
+            }
+
+            #[function_component]
+            fn EnvironmentEditor(props: &EnvironmentEditorProperties) -> Html {
+                macro_rules! create_editor {
+                    ($property_ed:ident => $prop_pretty_name_ed:expr) => {
+                        mod $property_ed {
+                            use yew::prelude::*;
+                            use web_sys::HtmlInputElement;
+                            use super::Environment;
+
+                            #[derive(Properties, PartialEq)]
+                            pub struct PropertyEditorProperties {
+                                pub update_check: Callback<Environment>,
+                                pub environment: Environment,
+                            }
+
+                            #[function_component]
+                            pub fn PropertyEditor(props: &PropertyEditorProperties) -> Html {
+                                let input_ref = use_node_ref();
+
+                                let onchange = {
+                                    let environment = props.environment.clone();
+                                    let update_check = props.update_check.clone();
+                                    let input_ref = input_ref.clone();
+
+                                    Callback::from(move |_| {
+                                        let Some(input) = input_ref.cast::<HtmlInputElement>() else { return; };
+                                        let mut new_environment = environment.clone();
+
+                                        new_environment.$property_ed = input.value();
+
+                                        update_check.emit(new_environment);
+                                    })
+                                };
+
+                                html! {
+                                    <div class="service-check-row">
+                                        <div>
+                                            { $prop_pretty_name_ed }
+                                        </div>
+
+                                        <div>
+                                            <input
+                                                value={props.environment.$property_ed.clone()}
+                                                ref={input_ref}
+                                                {onchange}
+                                            />
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        }
+                    };
+                }
+
+                create_editor!(matching_content => "Result to check");
+
+                $(
+                    create_editor!($property => $property_name);
+                )*
+
+                let delete_check = {
+                    let delete_check = props.delete_check.clone();
+
+                    Callback::from(move |_| delete_check.emit(()))
+                };
+
+                html! {
+                    <div class="service-check">
+                        <matching_content::PropertyEditor
+                            update_check={props.update_check.clone()}
+                            environment={props.environment.clone()}
+                        />
+
+                        $(
+                            <$property::PropertyEditor
+                                update_check={props.update_check.clone()}
+                                environment={props.environment.clone()}
+                            />
+                        )*
+
+                        <div class="service-check-row">
+                            <div />
+
+                            <div>
+                                <a href="#" onclick={delete_check}>
+                                    { "Delete check" }
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
 
             #[derive(Properties, PartialEq)]
             pub struct EditorProperties {
@@ -153,8 +266,89 @@ macro_rules! define_service_environment_editor {
             }
 
             #[function_component]
-            pub fn Editor(_props: &EditorProperties) -> Html {
-                html! {}
+            pub fn Editor(props: &EditorProperties) -> Html {
+                let service_updater = || -> Box<dyn Fn(&dyn Fn(&mut $service_definition_type))> {
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let port = props.port;
+                    let points = props.points;
+                    let accounts = props.accounts.clone();
+                    let checks = props.service_definition.clone();
+
+                    Box::new(move |update_checks| {
+                        let mut new_checks = checks.clone();
+                        (update_checks)(&mut new_checks);
+                        let new_service = config::ServiceEditor {
+                            name: name.clone(),
+                            port,
+                            points,
+                            accounts: accounts.clone(),
+                            definition: config::ServiceDefinition::$new_service {
+                                environment: new_checks,
+                            },
+                        };
+
+                        update_service.emit(new_service);
+                    })
+                };
+
+                let add_check = {
+                    let service_updater = service_updater();
+
+                    Callback::from(move |_| {
+                        service_updater(&|checks| {
+                            checks.push(<$service_definition_type as Extractor<_>>::Item::default());
+                        })
+                    })
+                };
+
+                let checks = props.service_definition.iter().enumerate().map(|(i, environment)| {
+                    let delete_check = {
+                        let service_updater = service_updater();
+
+                        Callback::from(move |()| {
+                            service_updater(&|checks| {
+                                checks.remove(i);
+                            })
+                        })
+                    };
+
+                    let update_check = {
+                        let service_updater = service_updater();
+
+                        Callback::from(move |update: Environment| {
+                            let update = update.clone();
+                            service_updater(&|checks| {
+                                checks[i].matching_content = update.matching_content.clone();
+                                $(
+                                    checks[i].$property = update.$property.clone();
+                                )*
+                            })
+                        })
+                    };
+
+                    html! {
+                        <EnvironmentEditor
+                            {update_check}
+                            {delete_check}
+                            environment={Environment {
+                                matching_content: environment.matching_content.clone(),
+                                $($property: environment.$property.clone()),*
+                            }}
+                        />
+                    }
+                });
+
+                html! {
+                    <>
+                        <a href="#" onclick={add_check} class="add-service">
+                            { "Add check" }
+                        </a>
+
+
+                        { for checks }
+                    </>
+                }
             }
         }
     };

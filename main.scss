@@ -691,4 +691,60 @@ main#machines {
       }
     }
   }
+
+  .service-properties-pane .add-service {
+    text-decoration: none;
+    display: inline-block;
+    background-color: $blue;
+    color: white;
+    align-self: center;
+    justify-self: end;
+    padding: 10px;
+    border: 1px solid $blue;
+    margin: 0px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .service-check {
+    border-top: 1px solid color.scale($red, $lightness: -35%);
+    padding-top: 15px;
+  }
+
+  .service-check-row {
+    display: grid;
+    padding-bottom: 15px;
+    grid-template-columns: 1fr 1fr;
+    box-sizing: border-box;
+
+    div:nth-of-type(1) {
+      color: white;
+    }
+
+    div:nth-of-type(2) {
+    }
+
+    a {
+      text-decoration: none;
+      display: inline-block;
+      background-color: $blue;
+      color: white;
+      align-self: center;
+      justify-self: start;
+      padding: 10px;
+      border: 1px solid $blue;
+      margin: 0px;
+      border-radius: 5px;
+      border: 1px solid color.scale($blue, $lightness: -15%);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
 }

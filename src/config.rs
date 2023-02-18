@@ -217,6 +217,7 @@ pub struct ServiceConfig {
     pub host: String,
     pub port: u16,
     pub points: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub accounts: Option<Vec<User>>,
     pub environments: Vec<Environment>,
 }
@@ -232,91 +233,93 @@ pub struct ServiceEditor {
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct DnsCheckInfo {
-    matching_content: String,
-    qtype: String,
-    domain: String,
+    pub matching_content: String,
+    pub qtype: String,
+    pub domain: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct DockerCheckInfo {
-    matching_content: String,
+    pub matching_content: String,
+    pub image: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct ElasticsearchCheckInfo {
-    matching_content: String,
-    index: String,
-    doc_type: String,
+    pub matching_content: String,
+    pub index: String,
+    pub doc_type: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct FtpCheckInfo {
-    matching_content: String,
-    remotefilepath: String,
-    filecontents: String,
+    pub matching_content: String,
+    pub remotefilepath: String,
+    pub filecontents: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct HttpCheckInfo {
-    matching_content: String,
-    useragent: String,
-    vhost: String,
-    uri: String,
+    pub matching_content: String,
+    pub useragent: String,
+    pub vhost: String,
+    pub uri: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct ImapCheckInfo {
-    matching_content: String,
-    domain: String,
+    pub matching_content: String,
+    pub domain: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct LdapCheckInfo {
-    matching_content: String,
-    domain: String,
-    base_dn: String,
+    pub matching_content: String,
+    pub domain: String,
+    pub base_dn: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct SqlCheckInfo {
-    matching_content: String,
-    database: String,
-    command: String,
+    pub matching_content: String,
+    pub database: String,
+    pub command: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct NfsCheckInfo {
-    matching_content: String,
-    remotefilepath: String,
-    filecontents: String,
+    pub matching_content: String,
+    pub remotefilepath: String,
+    pub filecontents: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct PopCheckInfo {
-    matching_content: String,
-    domain: String,
+    pub matching_content: String,
+    pub domain: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct SmbCheckInfo {
-    matching_content: String,
-    share: String,
-    file: String,
-    hash: String,
+    pub matching_content: String,
+    pub remote_name: String,
+    pub share: String,
+    pub file: String,
+    pub hash: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct SmtpCheckInfo {
-    matching_content: String,
-    touser: String,
-    subject: String,
-    body: String,
+    pub matching_content: String,
+    pub touser: String,
+    pub subject: String,
+    pub body: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone, Default)]
 pub struct RemoteCommandCheckInfo {
-    matching_content: String,
-    commands: String,
+    pub matching_content: String,
+    pub commands: String,
 }
 
 #[derive(Deserialize, Serialize, Eq, PartialEq, Debug, Clone)]
@@ -410,7 +413,7 @@ macro_rules! service_definition_check {
                         matching_content: iter_item.matching_content.clone(),
                         properties: vec![
                             $(EnvironmentProperties {
-                                name: "$field".to_string(),
+                                name: stringify!($field).to_string(),
                                 value: iter_item.$field.clone()
                             }),*
                         ]
