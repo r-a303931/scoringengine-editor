@@ -29,11 +29,134 @@ macro_rules! count_properties {
 }
 
 macro_rules! define_service_environment_editor {
-    (Option<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
-        html! {}
+    ($service_definition_type:ty, $new_service:ident, ) => {
+        mod environment_editor {
+            use crate::config;
+            use web_sys::HtmlInputElement;
+            use yew::prelude::*;
+
+            #[derive(Properties, PartialEq)]
+            pub struct EditorProperties {
+                pub update_service: Callback<config::ServiceEditor>,
+                pub name: String,
+                pub port: u16,
+                pub points: u16,
+                pub accounts: Option<Vec<config::User>>,
+                pub service_definition: $service_definition_type,
+            }
+
+            #[function_component]
+            pub fn Editor(props: &EditorProperties) -> Html {
+                let service_updater = || -> Box<dyn Fn($service_definition_type)> {
+                    let update_service = props.update_service.clone();
+                    let name = props.name.clone();
+                    let port = props.port;
+                    let points = props.points;
+                    let accounts = props.accounts.clone();
+
+                    Box::new(move |check| {
+                        let new_service = config::ServiceEditor {
+                            name: name.clone(),
+                            port,
+                            points,
+                            accounts: accounts.clone(),
+                            definition: config::ServiceDefinition::$new_service {
+                                environment: check,
+                            },
+                        };
+
+                        update_service.emit(new_service);
+                    })
+                };
+
+                let env_default_ref = use_node_ref();
+
+                let update_use_default = {
+                    let env_default_ref = env_default_ref.clone();
+                    let update_service = service_updater();
+
+                    Callback::from(move |_| {
+                        let Some(input) = env_default_ref.cast::<HtmlInputElement>() else { return; };
+
+                        if input.checked() {
+                            update_service(None);
+                        } else {
+                            update_service(Some("".into()));
+                        }
+                    })
+                };
+
+                let check_input_ref = use_node_ref();
+
+                let update_check = {
+                    let check_input_ref = check_input_ref.clone();
+                    let update_service = service_updater();
+
+                    Callback::from(move |_| {
+                        let Some(input) = check_input_ref.cast::<HtmlInputElement>() else { return; };
+
+                        update_service(Some(input.value()));
+                    })
+                };
+
+                html! {
+                    <>
+                        <div class="service-property">
+                            <div class="service-property-name">
+                                { "Use default check:" }
+                            </div>
+
+                            <div class="service-property-value">
+                                <input
+                                    ref={env_default_ref}
+                                    type="checkbox"
+                                    checked={props.service_definition.is_none()}
+                                    onchange={update_use_default}
+                                />
+                            </div>
+                        </div>
+
+                        if let Some(check_input) = &props.service_definition {
+                            <div class="service-property">
+                                <div class="service-property-name">
+                                    { "Check for text:" }
+                                </div>
+
+                                <div class="service-property-value">
+                                    <input
+                                        ref={check_input_ref}
+                                        value={check_input.clone()}
+                                        onchange={update_check}
+                                    />
+                                </div>
+                            </div>
+                        }
+                    </>
+                }
+            }
+        }
     };
-    (Vec<$type:ty>, $props:expr, $($property:ident => $property_name:expr),*) => {
-        html! {}
+    ($service_definition_type:ty, $new_service:ident, $($property:ident => $property_name:expr),*) => {
+        mod environment_editor {
+            use crate::config;
+            use web_sys::HtmlInputElement;
+            use yew::prelude::*;
+
+            #[derive(Properties, PartialEq)]
+            pub struct EditorProperties {
+                pub update_service: Callback<config::ServiceEditor>,
+                pub name: String,
+                pub port: u16,
+                pub points: u16,
+                pub accounts: Option<Vec<config::User>>,
+                pub service_definition: $service_definition_type,
+            }
+
+            #[function_component]
+            pub fn Editor(_props: &EditorProperties) -> Html {
+                html! {}
+            }
+        }
     };
 }
 
@@ -73,6 +196,12 @@ macro_rules! setup_service {
         ($($property:ident => $prop_pretty_name:expr),*)
     ) => {
         mod $name {
+            define_service_environment_editor!(
+                $service_definition_type,
+                $new_service,
+                $($property => $prop_pretty_name),*
+            );
+
             use crate::config::{self, ServiceEditor};
             use yew::prelude::*;
             use web_sys::HtmlInputElement;
@@ -95,7 +224,9 @@ macro_rules! setup_service {
                             port: $new_port,
                             points: $new_points,
                             accounts: $new_accounts,
-                            definition: config::ServiceDefinition::$new_service { environment: $new_service_params },
+                            definition: config::ServiceDefinition::$new_service {
+                                environment: $new_service_params
+                            },
                         });
                     })
                 };
@@ -561,19 +692,21 @@ macro_rules! setup_service {
                                     </div>
                                 </div>
 
-                                <div class="service-property">
-                                    <div class="service-property-name">
-                                        { "Service port:" }
-                                    </div>
+                                if $new_port != 0 {
+                                    <div class="service-property">
+                                        <div class="service-property-name">
+                                            { "Service port:" }
+                                        </div>
 
-                                    <div class="service-property-value">
-                                        <input
-                                            ref={service_port_ref}
-                                            value={props.port.to_string()}
-                                            onchange={set_service_port}
-                                        />
+                                        <div class="service-property-value">
+                                            <input
+                                                ref={service_port_ref}
+                                                value={props.port.to_string()}
+                                                onchange={set_service_port}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                }
 
                                 <div class="service-property">
                                     <div class="service-property-name">
@@ -596,7 +729,14 @@ macro_rules! setup_service {
                                     Some("hidden").filter(|_| !matches!(*current_tab_index, Tabs::Environments))
                                 )}
                             >
-                                { "Environments" }
+                                <environment_editor::Editor
+                                    update_service={props.update_service.clone()}
+                                    name={props.name.clone()}
+                                    accounts={props.accounts.clone()}
+                                    service_definition={props.service_definition.clone()}
+                                    port={props.port}
+                                    points={props.points}
+                                />
                             </div>
 
                             <div
@@ -694,7 +834,9 @@ setup_service! {
         accounts => None,
         definition => Docker
     },
-    ()
+    (
+        image => "Image"
+    )
 }
 setup_service! {
     (elasticsearch, "Elasticsearch", Vec<config::ElasticsearchCheckInfo>),
