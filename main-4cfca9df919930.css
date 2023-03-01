@@ -311,6 +311,7 @@ main#machines .new-service {
   box-sizing: border-box;
   padding: 15px;
   transition: transform 0.15s ease;
+  cursor: move;
 }
 main#machines .new-service h3 {
   margin-top: 0;
