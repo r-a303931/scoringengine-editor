@@ -58,6 +58,7 @@ pub fn ConfigurationOutput() -> Html {
             }
 
             <pre ref={text_display_ref} {onclick}>
+                { "---\n" }
                 if let Ok(yaml) = &result {
                     {yaml}
                 }
