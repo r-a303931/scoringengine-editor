@@ -469,6 +469,9 @@ impl ServiceDefinition {
                     matching_content => (
                         str::is_empty => "Service match cannot be empty"
                     ),
+                    filecontents => (
+                        str::is_empty => "File contents cannot be empty"
+                    ),
                     remotefilepath => (
                         str::is_empty => "Remote file path cannot be empty"
                     )
@@ -570,6 +573,9 @@ impl ServiceDefinition {
                     matching_content => (
                         str::is_empty => "Service match cannot be empty"
                     ),
+                    remote_name => (
+                        str::is_empty => "Remote name cannot be empty"
+                    ),
                     share => (
                         str::is_empty => "Share name cannot be empty"
                     ),
@@ -652,7 +658,7 @@ impl ServiceDefinition {
             ServiceDefinition::Imaps { .. } => "IMAPSCheck",
             ServiceDefinition::Ldap { .. } => "LDAPCheck",
             ServiceDefinition::Mssql { .. } => "MSSQLCheck",
-            ServiceDefinition::Mysql { .. } => "MySQLCheck",
+            ServiceDefinition::Mysql { .. } => "MYSQLCheck",
             ServiceDefinition::Nfs { .. } => "NFSCheck",
             ServiceDefinition::Pop3 { .. } => "POP3Check",
             ServiceDefinition::Pop3s { .. } => "POP3SCheck",
