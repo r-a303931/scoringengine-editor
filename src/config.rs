@@ -550,6 +550,9 @@ impl ServiceDefinition {
                     ),
                     remotefilepath => (
                         str::is_empty => "Remote file path cannot be empty"
+                    ),
+                    filecontents => (
+                        str::is_empty => "File contents cannot be empty"
                     )
                 )
             },
