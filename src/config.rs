@@ -181,6 +181,11 @@ pub struct Configuration {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct FinalConfiguration {
+    pub teams: Vec<TeamConfig>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "color")]
 pub enum TeamConfig {
     Red {
@@ -786,7 +791,7 @@ fn convert_id_to_ip(
 
 pub fn convert_editor_to_final(
     config: &ConfigurationEditor,
-) -> Result<Configuration, ConversionError> {
+) -> Result<(FinalConfiguration, ConfigurationEditor), ConversionError> {
     let config = config.clone();
 
     let red_white = config
@@ -1064,8 +1069,10 @@ pub fn convert_editor_to_final(
         }
     }
 
-    Ok(Configuration {
-        teams: [red_white, blue].concat(),
-        editor_info: config,
-    })
+    Ok((
+        FinalConfiguration {
+            teams: [red_white, blue].concat(),
+        },
+        config,
+    ))
 }
