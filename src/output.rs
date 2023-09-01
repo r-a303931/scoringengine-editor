@@ -62,6 +62,9 @@ pub fn ConfigurationOutput() -> Html {
                 if let Ok(yaml) = &result {
                     {yaml}
                 }
+                if let Ok(yaml) = &result {
+                    { "\n\nflags: []" }
+                }
             </pre>
         </main>
     }
