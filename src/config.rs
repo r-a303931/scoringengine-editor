@@ -181,6 +181,11 @@ pub struct Configuration {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct FinalConfiguration {
+    pub teams: Vec<TeamConfig>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "color")]
 pub enum TeamConfig {
     Red {
@@ -469,6 +474,9 @@ impl ServiceDefinition {
                     matching_content => (
                         str::is_empty => "Service match cannot be empty"
                     ),
+                    filecontents => (
+                        str::is_empty => "File contents cannot be empty"
+                    ),
                     remotefilepath => (
                         str::is_empty => "Remote file path cannot be empty"
                     )
@@ -547,6 +555,9 @@ impl ServiceDefinition {
                     ),
                     remotefilepath => (
                         str::is_empty => "Remote file path cannot be empty"
+                    ),
+                    filecontents => (
+                        str::is_empty => "File contents cannot be empty"
                     )
                 )
             },
@@ -569,6 +580,9 @@ impl ServiceDefinition {
                 (
                     matching_content => (
                         str::is_empty => "Service match cannot be empty"
+                    ),
+                    remote_name => (
+                        str::is_empty => "Remote name cannot be empty"
                     ),
                     share => (
                         str::is_empty => "Share name cannot be empty"
@@ -652,7 +666,7 @@ impl ServiceDefinition {
             ServiceDefinition::Imaps { .. } => "IMAPSCheck",
             ServiceDefinition::Ldap { .. } => "LDAPCheck",
             ServiceDefinition::Mssql { .. } => "MSSQLCheck",
-            ServiceDefinition::Mysql { .. } => "MySQLCheck",
+            ServiceDefinition::Mysql { .. } => "MYSQLCheck",
             ServiceDefinition::Nfs { .. } => "NFSCheck",
             ServiceDefinition::Pop3 { .. } => "POP3Check",
             ServiceDefinition::Pop3s { .. } => "POP3SCheck",
@@ -777,7 +791,7 @@ fn convert_id_to_ip(
 
 pub fn convert_editor_to_final(
     config: &ConfigurationEditor,
-) -> Result<Configuration, ConversionError> {
+) -> Result<(FinalConfiguration, ConfigurationEditor), ConversionError> {
     let config = config.clone();
 
     let red_white = config
@@ -1055,8 +1069,10 @@ pub fn convert_editor_to_final(
         }
     }
 
-    Ok(Configuration {
-        teams: [red_white, blue].concat(),
-        editor_info: config,
-    })
+    Ok((
+        FinalConfiguration {
+            teams: [red_white, blue].concat(),
+        },
+        config,
+    ))
 }

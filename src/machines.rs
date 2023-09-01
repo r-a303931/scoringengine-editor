@@ -1145,7 +1145,7 @@ setup_service! {
     (mssql, "MSSQL", Vec<config::SqlCheckInfo>),
     ServiceEditor {
         name => "MSSQL",
-        port => 1433,
+        port => 3389,
         points => 100,
         accounts => Some(vec![]),
         definition => Mssql
@@ -1159,7 +1159,7 @@ setup_service! {
     (mysql, "MySQL", Vec<config::SqlCheckInfo>),
     ServiceEditor {
         name => "MySQL",
-        port => 1433,
+        port => 3306,
         points => 100,
         accounts => Some(vec![]),
         definition => Mysql

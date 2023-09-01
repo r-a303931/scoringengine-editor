@@ -29,7 +29,7 @@ pub fn ConfigurationOutput() -> Html {
 
     let result = convert_editor_to_final(config)
         .map_err(EditorError::Conversion)
-        .and_then(|conf| serde_yaml::to_string(&conf).map_err(EditorError::Serialize));
+        .and_then(|(conf, _)| serde_yaml::to_string(&conf).map_err(EditorError::Serialize));
 
     let onclick = {
         let text_display_ref = text_display_ref.clone();
