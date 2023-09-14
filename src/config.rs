@@ -35,7 +35,6 @@ pub enum ConversionError {
     DuplicateIPs(String, String, String),
     EmptyUsernameOrPassword(String, String),
     DuplicateBlueTeamIDs(u8, Vec<String>),
-    ZeroBlueTeamID(String),
     TeamNeedsUser(String),
     TeamHasEmptyName,
     MachineHasEmptyName,
@@ -106,9 +105,6 @@ impl Display for ConversionError {
                     "duplicate blue team member IDs for teams {} ({id})",
                     names.join(", ")
                 )
-            }
-            Self::ZeroBlueTeamID(name) => {
-                write!(f, "blue team {name} has an ID of 0")
             }
             Self::TeamNeedsUser(team) => {
                 write!(f, "team {team} is missing at least one user account")
@@ -976,10 +972,6 @@ pub fn convert_editor_to_final(
         let mut blue_ids_map: HashMap<u8, Vec<&str>> = HashMap::new();
 
         for team in &config.blue_teams {
-            if team.id == 0 {
-                return Err(ConversionError::ZeroBlueTeamID(team.name.clone()));
-            }
-
             let name_list_option = blue_ids_map.get_mut(&team.id);
 
             if let Some(name_list) = name_list_option {
