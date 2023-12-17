@@ -15,8 +15,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use state::EditorState;
 use yew::prelude::*;
+
+use state::{CurrentView, EditingState, EditorMessage, EditorStateContext};
 
 mod config;
 mod error;
@@ -30,25 +31,25 @@ mod users;
 
 #[function_component]
 fn NavBar() -> Html {
-    let editor_state = use_context::<state::EditorStateContext>().unwrap();
+    let editor_state = use_context::<EditorStateContext>().unwrap();
 
-    let (allow_others, current_view) = match &*editor_state {
-        EditorState::HasConfig { current_view, .. } => (true, *current_view),
-        _ => (false, state::CurrentView::Input),
+    let (allow_others, current_view) = &match editor_state.state {
+        EditingState::HasConfig { current_view, .. } => (true, current_view),
+        _ => (false, CurrentView::Input),
     };
 
     macro_rules! define_view_change_callback {
         ($event:expr) => {{
             let editor_state_clone = editor_state.clone();
             Callback::from(move |_: MouseEvent| {
-                editor_state_clone.dispatch(state::EditorMessage::ChangeToView($event))
+                editor_state_clone.dispatch(EditorMessage::ChangeToView($event))
             })
         }};
     }
 
     macro_rules! class_currently_selected {
         ($view:expr) => {{
-            if current_view == $view {
+            if *current_view == $view {
                 classes!(Some("selected"))
             } else if !allow_others {
                 classes!(Some("inactive"))
@@ -58,7 +59,7 @@ fn NavBar() -> Html {
         }};
     }
 
-    let input_class = classes!(if current_view == state::CurrentView::Input {
+    let input_class = classes!(if *current_view == CurrentView::Input {
         Some("selected")
     } else {
         None
@@ -105,15 +106,15 @@ fn NavBar() -> Html {
 
 #[function_component]
 fn MainContent() -> Html {
-    let editor_state = use_context::<state::EditorStateContext>().unwrap();
+    let editor_state = use_context::<EditorStateContext>().unwrap();
 
     use state::CurrentView::*;
 
-    match &*editor_state {
-        state::EditorState::Initializing { .. } => html! {
+    match &editor_state.state {
+        EditingState::Initializing { .. } => html! {
             <input::InitEditor />
         },
-        state::EditorState::HasConfig { current_view, .. } => match current_view {
+        EditingState::HasConfig { current_view, .. } => match current_view {
             Input => html! {
                 <input::InitEditor />
             },

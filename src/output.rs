@@ -23,7 +23,7 @@ use crate::{config::convert_editor_to_final, error::EditorError};
 #[function_component]
 pub fn ConfigurationOutput() -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
-    let (_, _, config, _, _, _) = editor_state.force_init();
+    let (config, _, _, _) = editor_state.force_init();
 
     let text_display_ref = use_node_ref();
 
@@ -53,7 +53,7 @@ pub fn ConfigurationOutput() -> Html {
         <main id="output">
             if let Err(err) = &result {
                 <div id="error">
-                    {err}
+                {format!("{}", err)}
                 </div>
             }
 
@@ -61,8 +61,6 @@ pub fn ConfigurationOutput() -> Html {
                 { "---\n" }
                 if let Ok(yaml) = &result {
                     {yaml}
-                }
-                if let Ok(yaml) = &result {
                     { "\n\nflags: []" }
                 }
             </pre>

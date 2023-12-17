@@ -201,7 +201,9 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
         let white_team = props.white_team;
 
         Callback::from(move |_| {
-            let Some(input) = name_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = name_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let value = input.value();
 
             update_team.emit((value.into(), users.clone(), white_team));
@@ -215,7 +217,9 @@ fn RedWhiteTeamEditorComponent(props: &RedWhiteTeamEditorProps) -> Html {
         let type_ref = type_ref.clone();
 
         Callback::from(move |_| {
-            let Some(input) = type_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = type_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let value = input.value();
 
             let white_team = value == "white";
@@ -346,7 +350,9 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
         let id = props.id;
 
         Callback::from(move |_| {
-            let Some(input) = name_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = name_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let value = input.value();
 
             update_team.emit((value.into(), users.clone(), id));
@@ -361,7 +367,9 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
         let id_input_state = id_input_state.clone();
 
         Callback::from(move |_| {
-            let Some(input) = id_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = id_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let value = input.value();
 
             match value.parse::<u8>() {
@@ -482,7 +490,7 @@ fn BlueTeamEditorComponent(props: &BlueTeamEditorProps) -> Html {
 #[function_component]
 pub fn TeamsEditor() -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
-    let (_, _, config, _, _, _) = editor_state.force_init();
+    let (config, _, _, _) = editor_state.force_init();
     let red_white_teams = config.red_white_teams.clone();
     let blue_teams = config.blue_teams.clone();
 

@@ -3,6 +3,8 @@
 $blue: #0a254e;
 $red: #900;
 
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
 html {
   width: 100%;
   height: 100%;
@@ -23,6 +25,13 @@ body {
   grid-template-areas:
     "header header"
     "sidebar content";
+  font-family: "Fira Code", sans-serif;
+}
+
+@supports (font-variation-settings: normal) {
+  body {
+    font-family: "Fira Code VF", sans-serif;
+  }
 }
 
 header {
@@ -118,6 +127,91 @@ main {
 }
 
 main#input {
+  .new-config-row {
+    border: 1px solid black;
+    padding: 10px;
+    display: flex;
+    flex-direction: row;
+
+    .button {
+      margin: 0px;
+      margin-right: 10px;
+    }
+
+    input {
+      padding: 10px;
+      flex-grow: 1;
+    }
+
+    margin-bottom: 10px;
+  }
+
+  .configs {
+    padding: 10px;
+    border: 1px solid black;
+
+    i {
+      display: inline-block;
+      margin: 10px auto;
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .config-row {
+    border: 1px solid $blue;
+    margin-bottom: 10px;
+    padding: 10px;
+
+    &.selected {
+      border: 2px solid $red;
+    }
+  }
+  .config-name {
+    border-bottom: 1px solid $blue;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .config-row.selected .config-name {
+    font-weight: bold;
+  }
+
+  .config-details {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .config-buttons a {
+    float: right;
+  }
+
+  .config-details div {
+    min-width: 340px;
+    flex-grow: 1;
+  }
+
+  .button {
+    text-decoration: none;
+    display: inline-block;
+    background-color: $blue;
+    color: white;
+    padding: 10px;
+    border: 1px solid $blue;
+    margin-right: 5px;
+    border-radius: 5px;
+    border: 1px solid color.scale($blue, $lightness: -15%);
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &.disabled {
+      color: gray;
+      cursor: not-allowed;
+    }
+  }
+
   textarea {
     width: 100%;
     height: calc(100% - 66.4px - 75px - 51.1667px);
@@ -127,24 +221,6 @@ main#input {
     resize: none;
     padding: 5px;
     box-shadow: 0 0 1px 1px inset #555;
-  }
-
-  a {
-    text-decoration: none;
-    display: inline-block;
-    background-color: $blue;
-    color: white;
-    padding: 10px;
-    border: 1px solid $blue;
-    float: right;
-    margin: 15px;
-    margin-right: 0px;
-    border-radius: 5px;
-    border: 1px solid color.scale($blue, $lightness: -15%);
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 }
 

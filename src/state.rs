@@ -17,12 +17,27 @@
 
 use std::rc::Rc;
 
+use gloo_storage::{LocalStorage, Storage};
+use serde::{Deserialize, Serialize};
 use yew::prelude::*;
 
 use crate::config::{
-    BlueTeamEditor, Configuration, ConfigurationEditor, IpGeneratorScheme, MachineEditor,
-    RedWhiteTeamEditor, ServiceEditor,
+    BlueTeamEditor, ConfigurationEditor, IpGeneratorScheme, MachineEditor, RedWhiteTeamEditor,
+    ServiceEditor,
 };
+
+const STORAGE_KEY: &str = "stored_configurations";
+
+fn save_changes(state: EditorState) -> EditorState {
+    let _ = LocalStorage::set(STORAGE_KEY, state.configs.clone());
+    state
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct StoredConfigurations {
+    pub name: String,
+    pub config: ConfigurationEditor,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CurrentView {
@@ -34,9 +49,11 @@ pub enum CurrentView {
 }
 
 pub enum EditorMessage {
-    UpdateInitialEditor(String),
-    FinishInit,
-    CreateNew,
+    EditConfigName(String, u8),
+    FinishInit(u8),
+    DeleteConfig(u8),
+    CreateNew(String),
+    Copy(String, u8),
     ChangeToView(CurrentView),
     UpdateIpSettings(IpGeneratorScheme),
     Error(String),
@@ -56,15 +73,17 @@ pub enum EditorMessage {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum EditorState {
-    Initializing {
-        editor_box: String,
-        error: Option<String>,
-    },
+pub struct EditorState {
+    pub error: Option<String>,
+    pub configs: Vec<StoredConfigurations>,
+    pub state: EditingState,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum EditingState {
+    Initializing,
     HasConfig {
-        editor_box: String,
-        error: Option<String>,
-        config: ConfigurationEditor,
+        config: u8,
         current_view: CurrentView,
         currently_hovered_machine_name: Option<u8>,
         service_to_drop: Box<Option<ServiceEditor>>,
@@ -76,27 +95,21 @@ impl EditorState {
     pub fn force_init(
         &self,
     ) -> (
-        &str,
-        Option<&str>,
         &ConfigurationEditor,
         &CurrentView,
         Option<u8>,
         Option<&ServiceEditor>,
     ) {
-        match self {
-            EditorState::Initializing { .. } => panic!("forced init on uninit state"),
-            EditorState::HasConfig {
-                editor_box,
-                error,
+        match &self.state {
+            EditingState::Initializing { .. } => panic!("forced init on uninit state"),
+            EditingState::HasConfig {
                 config,
                 current_view,
                 currently_hovered_machine_name,
                 service_to_drop,
             } => (
-                editor_box,
-                error.as_ref().map(|x| &**x),
-                config,
-                current_view,
+                &(self.configs[*config as usize].config),
+                &current_view,
                 currently_hovered_machine_name.clone(),
                 service_to_drop.as_ref().as_ref(),
             ),
@@ -104,19 +117,7 @@ impl EditorState {
     }
 
     pub fn error(&self) -> Option<&str> {
-        match self {
-            EditorState::Initializing { error, .. } => error.as_ref().map(|x| &**x),
-            EditorState::HasConfig { error, .. } => error.as_ref().map(|x| &**x),
-        }
-    }
-}
-
-impl Default for EditorState {
-    fn default() -> Self {
-        EditorState::Initializing {
-            editor_box: "".to_owned(),
-            error: None,
-        }
+        self.error.as_deref()
     }
 }
 
@@ -126,463 +127,292 @@ impl Reducible for EditorState {
     type Action = EditorMessage;
 
     fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        match (&*self, action) {
-            (EditorState::Initializing { .. }, EditorMessage::UpdateInitialEditor(new_text)) => {
-                EditorState::Initializing {
-                    editor_box: new_text,
-                    error: None,
+        match (&self.state, action) {
+            (_, EditorMessage::EditConfigName(n, i)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[i as usize].name = n;
+
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (_, EditorMessage::DeleteConfig(i)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs.remove(i as usize);
+
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (_, EditorMessage::Copy(name, i)) => {
+                let mut cconfigs = self.configs.clone();
+                let config = self.configs[i as usize].clone().config;
+                cconfigs.push(StoredConfigurations { name, config });
+
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (_, EditorMessage::FinishInit(i)) => EditorState {
+                state: EditingState::HasConfig {
+                    config: i,
+                    current_view: CurrentView::Machines,
+                    currently_hovered_machine_name: None,
+                    service_to_drop: Box::new(None),
+                },
+                ..(*self).clone()
+            }
+            .into(),
+            (_, EditorMessage::CreateNew(name)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs.push(StoredConfigurations {
+                    name,
+                    config: ConfigurationEditor {
+                        red_white_teams: vec![],
+                        blue_teams: vec![],
+                        machines: vec![],
+                        ip_generator: IpGeneratorScheme::OneTeam,
+                    },
+                });
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    state: EditingState::HasConfig {
+                        config: self.configs.len() as u8,
+                        current_view: CurrentView::Machines,
+                        currently_hovered_machine_name: None,
+                        service_to_drop: Box::new(None),
+                    },
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::ChangeToView(view)) => {
+                EditorState {
+                    state: EditingState::HasConfig {
+                        config: *config,
+                        current_view: view,
+                        currently_hovered_machine_name: None,
+                        service_to_drop: Box::new(None),
+                    },
+                    ..(*self).clone()
                 }
                 .into()
             }
             (
-                EditorState::HasConfig {
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                    ..
-                },
-                EditorMessage::UpdateInitialEditor(new_text),
-            ) => EditorState::HasConfig {
-                editor_box: new_text,
-                config: config.clone(),
-                current_view: *current_view,
-                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                service_to_drop: service_to_drop.clone(),
-                error: None,
-            }
-            .into(),
-            (EditorState::Initializing { editor_box, .. }, EditorMessage::FinishInit) => {
-                match serde_yaml::from_str::<Configuration>(editor_box) {
-                    Ok(conf) => EditorState::HasConfig {
-                        editor_box: editor_box.to_string(),
-                        error: None,
-                        config: conf.editor_info,
-                        current_view: CurrentView::Machines,
-                        currently_hovered_machine_name: None,
-                        service_to_drop: Box::new(None),
-                    }
-                    .into(),
-                    Err(e) => EditorState::Initializing {
-                        editor_box: editor_box.to_string(),
-                        error: Some(format!("Error parsing input! {e}")),
-                    }
-                    .into(),
-                }
-            }
-            (EditorState::HasConfig { editor_box, .. }, EditorMessage::FinishInit) => {
-                match serde_yaml::from_str::<Configuration>(editor_box) {
-                    Ok(conf) => EditorState::HasConfig {
-                        editor_box: editor_box.to_string(),
-                        error: None,
-                        config: conf.editor_info,
-                        current_view: CurrentView::Machines,
-                        currently_hovered_machine_name: None,
-                        service_to_drop: Box::new(None),
-                    }
-                    .into(),
-                    Err(e) => EditorState::Initializing {
-                        editor_box: editor_box.to_string(),
-                        error: Some(format!("Error parsing input! {e}")),
-                    }
-                    .into(),
-                }
-            }
-            (_, EditorMessage::CreateNew) => EditorState::HasConfig {
-                editor_box: "".to_string(),
-                error: None,
-                config: ConfigurationEditor {
-                    red_white_teams: vec![],
-                    blue_teams: vec![],
-                    machines: vec![],
-                    ip_generator: crate::config::IpGeneratorScheme::OneTeam,
-                },
-                current_view: CurrentView::Teams,
-                currently_hovered_machine_name: None,
-                service_to_drop: Box::new(None),
-            }
-            .into(),
-            (
-                EditorState::HasConfig {
-                    config,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                    editor_box,
-                    ..
-                },
-                EditorMessage::ChangeToView(view),
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.to_string(),
-                error: None,
-                config: config.clone(),
-                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                service_to_drop: service_to_drop.clone(),
-                current_view: view,
-            }
-            .into(),
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                    ..
-                },
+                EditingState::HasConfig { config, .. },
                 EditorMessage::UpdateIpSettings(new_ip_settings),
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.clone(),
-                error: None,
-                config: ConfigurationEditor {
-                    red_white_teams: config.red_white_teams.clone(),
-                    blue_teams: config.blue_teams.clone(),
-                    machines: config.machines.clone(),
-                    ip_generator: new_ip_settings,
-                },
-                current_view: *current_view,
-                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                service_to_drop: service_to_drop.clone(),
+            ) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.ip_generator = new_ip_settings;
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
             }
-            .into(),
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                    ..
-                },
-                EditorMessage::Error(e),
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.clone(),
+            (_, EditorMessage::Error(e)) => EditorState {
                 error: Some(e),
-                config: config.clone(),
-                current_view: *current_view,
-                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                service_to_drop: service_to_drop.clone(),
+                ..(*self).clone()
             }
             .into(),
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::AddRedWhiteTeam(team),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.red_white_teams.push(team);
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
+            (EditingState::HasConfig { config, .. }, EditorMessage::AddRedWhiteTeam(team)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.red_white_teams.push(team);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::AddBlueTeam(team)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.blue_teams.push(team);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
                 .into()
             }
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::AddBlueTeam(team),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.blue_teams.push(team);
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
+                EditingState::HasConfig { config, .. },
                 EditorMessage::EditRedWhiteTeam(ind, team),
             ) => {
-                let mut cconfig = config.clone();
-                let team_mut = cconfig.red_white_teams.get_mut(ind as usize);
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.red_white_teams[ind as usize] = team;
 
-                if let Some(team_mut) = team_mut {
-                    team_mut.name = team.name;
-                    team_mut.white_team = team.white_team;
-                    team_mut.users = team.users;
-                }
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::EditBlueTeam(ind, team)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.blue_teams[ind as usize] = team;
 
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::RemoveRedWhiteTeam(team)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize]
+                    .config
+                    .red_white_teams
+                    .remove(team as usize);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::RemoveBlueTeam(team)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize]
+                    .config
+                    .blue_teams
+                    .remove(team as usize);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::AddMachine(machine)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.machines.push(machine);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
                 .into()
             }
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::EditBlueTeam(ind, team),
-            ) => {
-                let mut cconfig = config.clone();
-                let team_mut = cconfig.blue_teams.get_mut(ind as usize);
-
-                if let Some(team_mut) = team_mut {
-                    team_mut.id = team.id;
-                    team_mut.name = team.name;
-                    team_mut.users = team.users;
-                }
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::RemoveRedWhiteTeam(ind),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.red_white_teams.remove(ind as usize);
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::RemoveBlueTeam(ind),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.blue_teams.remove(ind as usize);
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
-                EditorMessage::AddMachine(machine),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.machines.push(machine);
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    currently_hovered_machine_name,
-                    service_to_drop,
-                },
+                EditingState::HasConfig { config, .. },
                 EditorMessage::UpdateMachine(ind, machine),
             ) => {
-                let mut cconfig = config.clone();
-                cconfig.machines[ind as usize] = machine;
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize].config.machines[ind as usize] = machine;
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
+                .into()
+            }
+            (EditingState::HasConfig { config, .. }, EditorMessage::RemoveMachine(ind)) => {
+                let mut cconfigs = self.configs.clone();
+                cconfigs[*config as usize]
+                    .config
+                    .machines
+                    .remove(ind as usize);
+                save_changes(EditorState {
+                    configs: cconfigs,
+                    ..(*self).clone()
+                })
                 .into()
             }
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
+                EditingState::HasConfig {
                     config,
                     current_view,
                     currently_hovered_machine_name,
                     service_to_drop,
-                },
-                EditorMessage::RemoveMachine(ind),
-            ) => {
-                let mut cconfig = config.clone();
-                cconfig.machines.remove(ind as usize);
-
-                EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: cconfig,
-                    current_view: *current_view,
-                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                    service_to_drop: service_to_drop.clone(),
-                }
-                .into()
-            }
-            (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
-                    config,
-                    current_view,
-                    service_to_drop,
-                    ..
                 },
                 EditorMessage::DropService(ind),
             ) => match *service_to_drop.clone() {
                 Some(service) => {
-                    let mut cconfig = config.clone();
-                    cconfig.machines[ind as usize].services.push(service);
+                    let mut cconfigs = self.configs.clone();
+                    cconfigs[*config as usize].config.machines[ind as usize]
+                        .services
+                        .push(service);
 
-                    EditorState::HasConfig {
-                        editor_box: editor_box.clone(),
-                        error: error.clone(),
-                        config: cconfig,
-                        current_view: *current_view,
-                        currently_hovered_machine_name: None,
-                        service_to_drop: Box::new(None),
-                    }
+                    save_changes(EditorState {
+                        configs: cconfigs,
+                        state: EditingState::HasConfig {
+                            service_to_drop: Box::new(None),
+                            config: *config,
+                            current_view: *current_view,
+                            currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                        },
+                        ..(*self).clone()
+                    })
                     .into()
                 }
-                None => EditorState::HasConfig {
-                    editor_box: editor_box.clone(),
-                    error: error.clone(),
-                    config: config.clone(),
-                    current_view: *current_view,
-                    currently_hovered_machine_name: None,
-                    service_to_drop: Box::new(None),
+                None => EditorState {
+                    state: EditingState::HasConfig {
+                        service_to_drop: Box::new(None),
+                        config: *config,
+                        current_view: *current_view,
+                        currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                    },
+                    ..(*self).clone()
                 }
                 .into(),
             },
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
+                EditingState::HasConfig {
                     config,
                     current_view,
                     currently_hovered_machine_name,
                     ..
                 },
                 EditorMessage::PickupService(service_to_drop),
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.clone(),
-                error: error.clone(),
-                config: config.clone(),
-                current_view: *current_view,
-                currently_hovered_machine_name: currently_hovered_machine_name.clone(),
-                service_to_drop: Box::new(Some(service_to_drop)),
+            ) => EditorState {
+                state: EditingState::HasConfig {
+                    config: *config,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: currently_hovered_machine_name.clone(),
+                    service_to_drop: Box::new(Some(service_to_drop)),
+                },
+                ..(*self).clone()
             }
             .into(),
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
+                EditingState::HasConfig {
                     config,
                     current_view,
                     service_to_drop,
                     ..
                 },
                 EditorMessage::HoverOverMachine(name),
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.clone(),
-                error: error.clone(),
-                config: config.clone(),
-                current_view: *current_view,
-                currently_hovered_machine_name: Some(name),
-                service_to_drop: service_to_drop.clone(),
+            ) => EditorState {
+                state: EditingState::HasConfig {
+                    config: *config,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: Some(name),
+                    service_to_drop: service_to_drop.clone(),
+                },
+                ..(*self).clone()
             }
             .into(),
             (
-                EditorState::HasConfig {
-                    editor_box,
-                    error,
+                EditingState::HasConfig {
                     config,
                     current_view,
                     service_to_drop,
                     ..
                 },
                 EditorMessage::StopHoveringOverMachines,
-            ) => EditorState::HasConfig {
-                editor_box: editor_box.clone(),
-                error: error.clone(),
-                config: config.clone(),
-                current_view: *current_view,
-                currently_hovered_machine_name: None,
-                service_to_drop: service_to_drop.clone(),
+            ) => EditorState {
+                state: EditingState::HasConfig {
+                    config: *config,
+                    current_view: *current_view,
+                    currently_hovered_machine_name: None,
+                    service_to_drop: service_to_drop.clone(),
+                },
+                ..(*self).clone()
             }
             .into(),
 
-            (EditorState::Initializing { .. }, _) => self, // misconfigured case, shouldn't happen
+            (EditingState::Initializing { .. }, _) => self, // misconfigured case, shouldn't happen
         }
     }
 }
@@ -595,7 +425,16 @@ pub struct EditorStateProviderProps {
 
 #[function_component]
 pub fn EditorStateProvider(props: &EditorStateProviderProps) -> Html {
-    let state = use_reducer(EditorState::default);
+    let state = use_reducer(|| {
+        let configs =
+            LocalStorage::get::<Vec<StoredConfigurations>>(STORAGE_KEY).unwrap_or_default();
+
+        EditorState {
+            configs,
+            error: None,
+            state: EditingState::Initializing,
+        }
+    });
 
     html! {
         <ContextProvider<EditorStateContext> context={state}>

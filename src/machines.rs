@@ -1417,7 +1417,7 @@ struct MachineEditorProps {
 #[function_component]
 fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
-    let config = editor_state.force_init().2;
+    let config = editor_state.force_init().0;
 
     let machine_editor_error = use_state(Option::<String>::default);
 
@@ -1436,14 +1436,12 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 
     {
         let editing_name_ref = editing_name_ref.clone();
-        let editing_name_ref2 = editing_name_ref.clone();
-        use_effect_with_deps(
-            move |_| {
-                let Some(input) = editing_name_ref.cast::<HtmlInputElement>() else { return; };
-                input.focus().unwrap();
-            },
-            editing_name_ref2.get(),
-        );
+        use_effect_with(editing_name_ref.get(), move |_| {
+            let Some(input) = editing_name_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
+            input.focus().unwrap();
+        });
     }
 
     let update_name = {
@@ -1456,7 +1454,9 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 
         Callback::from(move |_| {
             machine_editor_error.set(None);
-            let Some(input) = editing_name_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = editing_name_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let mut new_machine = machine.clone();
             new_machine.name = input.value().clone();
             editor_state.dispatch(state::EditorMessage::UpdateMachine(i, new_machine));
@@ -1475,7 +1475,9 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 
         Callback::from(move |_| {
             machine_editor_error.set(None);
-            let Some(input) = ip_template_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = ip_template_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             let mut new_machine = machine.clone();
             new_machine.ip_template = input.value().clone();
             editor_state.dispatch(state::EditorMessage::UpdateMachine(i, new_machine));
@@ -1492,7 +1494,9 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
         let machine = props.machine.clone();
 
         Callback::from(move |_| {
-            let Some(input) = ip_offset_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = ip_offset_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
 
             match input.value().parse::<u8>() {
                 Ok(offset) => {
@@ -1524,7 +1528,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 
         Callback::from(move |e: DragEvent| {
             e.prevent_default();
-            if editor_state.force_init().5.is_none() || machine_name.is_empty() || is_editing {
+            if editor_state.force_init().3.is_none() || machine_name.is_empty() || is_editing {
                 return;
             }
             editor_state.dispatch(state::EditorMessage::HoverOverMachine(i));
@@ -1583,7 +1587,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
     let hovering_class = Some("hovering").filter(|_| {
         editor_state
             .force_init()
-            .4
+            .2
             .map(|hovering| hovering == props.i)
             .unwrap_or(false)
     });
@@ -1673,7 +1677,7 @@ fn MachineEditorComponent(props: &MachineEditorProps) -> Html {
 #[function_component]
 pub fn MachineConfiguration() -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
-    let config = editor_state.force_init().2;
+    let config = editor_state.force_init().0;
 
     let handle_pickup = {
         let editor_state = editor_state.clone();
@@ -1725,7 +1729,9 @@ pub fn MachineConfiguration() -> Html {
         let set_name_filter_ref = set_name_filter_ref.clone();
 
         Callback::from(move |_| {
-            let Some(input) = set_name_filter_ref.cast::<HtmlInputElement>() else { return; };
+            let Some(input) = set_name_filter_ref.cast::<HtmlInputElement>() else {
+                return;
+            };
             name_filter.set(input.value().into());
         })
     };

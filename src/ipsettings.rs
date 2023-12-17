@@ -24,7 +24,7 @@ use crate::{config::IpGeneratorScheme, state};
 pub fn IpSettingsEditor() -> Html {
     let editor_state = use_context::<crate::state::EditorStateContext>().unwrap();
     let editor_state_c = editor_state.force_init();
-    let machine_count = editor_state_c.2.machines.len();
+    let machine_count = editor_state_c.0.machines.len();
     let error = editor_state.error();
 
     let offsetreplace_state = use_state(|| "".to_string());
@@ -32,10 +32,10 @@ pub fn IpSettingsEditor() -> Html {
     let input_node_ref = use_node_ref();
 
     let manual_class = Some("selected")
-        .filter(|_| matches!(editor_state_c.2.ip_generator, IpGeneratorScheme::OneTeam));
+        .filter(|_| matches!(editor_state_c.0.ip_generator, IpGeneratorScheme::OneTeam));
     let dumbreplace_class = Some("selected").filter(|_| {
         matches!(
-            editor_state_c.2.ip_generator,
+            editor_state_c.0.ip_generator,
             IpGeneratorScheme::ReplaceXWithId
         )
     });
@@ -161,7 +161,7 @@ pub fn IpSettingsEditor() -> Html {
                     <label>{ "Current multiplier" }</label>
 
                     <div>
-                        { match editor_state_c.2.ip_generator {
+                        { match editor_state_c.0.ip_generator {
                             IpGeneratorScheme::ReplaceXWithIdTimesMultiplierPlusOffset { multiplier } => multiplier.to_string(),
                             _ => "(none)".to_string(),
                         } }
